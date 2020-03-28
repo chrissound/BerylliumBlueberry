@@ -1,0 +1,74 @@
+name: blog3000
+version: '0.2.0.0'
+author: CabalSaneDefault
+maintainer: nobody
+license: BSD3
+extra-source-files:
+- ChangeLog.md
+dependencies:
+- HUnit
+- aeson
+- aeson-pretty
+- base
+- base64-bytestring
+- binary
+- binary-orphans
+- bytestring
+- containers
+- cookie
+- data-default
+- directory
+- entropy
+- extra
+- formatting
+- http-types
+- lucid
+- mtl
+- niobiumcoconut
+- pandoc
+- postgresql-orm
+- postgresql-simple
+- pretty-simple
+- QuickCheck
+- scotty
+- scotty-cookie
+- stm
+- string-conversions
+- tasty
+- tasty-hunit
+- text
+- time
+- transformers
+- wai
+- wai-extra
+- wai-middleware-static
+- xhtml
+- http-test
+- pureMD5
+- typed-process
+- MissingH
+# - JuicyPixels
+# - JuicyPixels-extra
+library: 
+  ghc-options: -Wall
+  source-dirs: src
+executables:
+  blog3000-app:
+    main: Main.hs
+    source-dirs: src
+    ghc-options: -Wall -O2 # -static -threaded
+    # cc-options: -static
+    # ld-options: -static -pthread
+  blog3000-app-test:
+    main: Test.hs
+    source-dirs: src-test
+    ghc-options: -Wall -O2 -main-is Test # -static -threaded 
+    # cc-options: -static
+    # ld-options: -static -pthread
+    dependencies: 
+      - blog3000
+      - wreq
+      - lens
+      - http-client
+default-extensions: 
+  - LambdaCase

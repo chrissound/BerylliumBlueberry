@@ -1,0 +1,6 @@
+:set -Wall
+:set -Wno-type-defaults
+:set -Wno-unused-imports
+-- :set args --migrationsUp 6 
+-- test
+-- :set args --migrationsUp 6
