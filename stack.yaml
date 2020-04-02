@@ -7,6 +7,7 @@ extra-deps:
   commit: 76f8ad16abc7d3e5474df9ffe9672bdf8a6593f5
 - scotty-cookie-0.1.0.3
 - http-test-0.2.5@sha256:ff8335580e324f49f3edf6fe83bf04a5e793e9b8f991b544e73e30bbad5d60cb,1897
+- binary-orphans-0.1.8.0@sha256:009457e7f5f2dfdc32cb4b2b0bfc5d88ac78acb1b5fa8de15fd933ceb70cdeb6,2615
 
 nix: 
  packages:

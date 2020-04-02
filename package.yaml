@@ -12,7 +12,7 @@ dependencies:
 - base
 - base64-bytestring
 - binary
-- binary-orphans
+- binary-orphans <= 0.1.8.0
 - bytestring
 - containers
 - cookie

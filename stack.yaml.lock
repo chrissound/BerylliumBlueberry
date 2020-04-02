@@ -10,13 +10,13 @@ packages:
       sha256: b0b57ae12874f41b84eacd1ea618a259d3dd604d6f04ba55ae667238bea3afc3
     name: niobiumcoconut
     version: 0.2.0.0
-    git: git@github.com:chrissound/NiobiumCoconut.git
+    git: https://github.com/chrissound/NiobiumCoconut.git
     pantry-tree:
       size: 1114
       sha256: 4f3cc218ff920afebf2978ba437c71cfa902c783a0750257add857e0b5daed83
     commit: 76f8ad16abc7d3e5474df9ffe9672bdf8a6593f5
   original:
-    git: git@github.com:chrissound/NiobiumCoconut.git
+    git: https://github.com/chrissound/NiobiumCoconut.git
     commit: 76f8ad16abc7d3e5474df9ffe9672bdf8a6593f5
 - completed:
     hackage: scotty-cookie-0.1.0.3@sha256:3ff1df13a5acba8ba170a5ac22b3ac6a2c227791292536ce1ebfc41038f58fc9,1204
@@ -32,6 +32,13 @@ packages:
       sha256: b8150ff15a73fa01c2ee869eb7c3f8e6a0780a6817cb661833286b8f4514b954
   original:
     hackage: http-test-0.2.5@sha256:ff8335580e324f49f3edf6fe83bf04a5e793e9b8f991b544e73e30bbad5d60cb,1897
+- completed:
+    hackage: binary-orphans-0.1.8.0@sha256:009457e7f5f2dfdc32cb4b2b0bfc5d88ac78acb1b5fa8de15fd933ceb70cdeb6,2615
+    pantry-tree:
+      size: 380
+      sha256: fbe0d58605e9e65aa161c4869190f1a2ab92f07a946aeff163aea9c272b3e6b5
+  original:
+    hackage: binary-orphans-0.1.8.0@sha256:009457e7f5f2dfdc32cb4b2b0bfc5d88ac78acb1b5fa8de15fd933ceb70cdeb6,2615
 snapshots:
 - completed:
     size: 524996
