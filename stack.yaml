@@ -1,0 +1,18 @@
+resolver: lts-14.27
+packages:
+- '.'
+extra-deps: 
+# - postgresql-orm-0.5.1
+- git: git@github.com:chrissound/NiobiumCoconut.git
+  commit: 76f8ad16abc7d3e5474df9ffe9672bdf8a6593f5
+- scotty-cookie-0.1.0.3
+- http-test-0.2.5@sha256:ff8335580e324f49f3edf6fe83bf04a5e793e9b8f991b544e73e30bbad5d60cb,1897
+
+nix: 
+ packages:
+     - glibc
+     - gmp5
+     - postgresql.lib
+     - postgresql
+     - zlib.dev
+     - zlib.out
