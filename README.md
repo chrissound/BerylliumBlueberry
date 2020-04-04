@@ -1,6 +1,6 @@
 # BerylliumBlueberry
 
-A few years ago I started this project with the aim to use Haskell for it. I'm releasing it as open source because why the hell not? I'm sure there might be some areas that isn't ideal + minor bugs - but it's been running my own blog <https://trycatchchris.co.uk/> for like 4+ years now without any major issues.
+A few years ago I started this project with the aim to use Haskell for it. I'm releasing it as open source because why the hell not? I'm sure there might be some areas that isn't ideal + minor bugs - but it's been running my own blog <https://trycatchchris.co.uk/post/list> for like 4+ years now without any major issues.
 
 ## Features
 
