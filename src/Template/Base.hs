@@ -159,11 +159,7 @@ headerView sv =
     with div_ [ class_ "blog-header" ] $ do
       with div_ [ class_ "row" ] $ do
         with div_ [ class_ "col-sm-12" ] $ do
-          with div_ [ class_ "col-sm-12 photo-contain" ] $ do
-            pure ()
-            -- img_ [src_ "/static/ppp2.jpg", class_ "me-picture img-responsive center-block"]
-            -- img_ [src_ "/static/pp1.jpg", class_ "me-picture img-responsive center-block"]
-            -- img_ [src_ "/static/pp3.jpg", class_ "me-picture img-responsive center-block"]
+          img_ [src_ "/static/main-img.jpg", class_ "me-picture img-responsive center-block"]
           with div_ [class_ "clear"] $ pure ()
       with div_ [ class_ "row" ] $ do
         with div_ [ class_ "col-sm-12 my-header" ] $ do

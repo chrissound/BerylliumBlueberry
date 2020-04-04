@@ -44,8 +44,6 @@ instance FromJSON ConnectInfo
 
 getAppConfig :: IO AppConfig
 getAppConfig = do
-  encodeFile "data/config.sample.json" $
-    AppConfig "" "" ([("/test","/abc")]) "" "" "" (ConnectInfo "" 3000 "" "" "")
   eitherDecodeFileStrict "data/config.json" >>= \case
     Right x -> pure x
     Left e -> error $ "App config failed to load: " <> show e

@@ -25,11 +25,13 @@ import System.Environment
 import System.Exit
 import Data.Binary
 import Network.Wai.Middleware.RequestLogger
+import qualified Data.Aeson 
 
 -- Local package
 import Server
 import App
 import Database
+import AppConfig
 
 commentPostRefinfo :: DBRefInfo Comment Post
 commentPostRefinfo = defaultDBRefInfo
@@ -42,6 +44,7 @@ migrateAll = do
   up3 c
   up4 c
   up5 c
+  up6 c
 
 up :: Connection -> IO ()
 up c = do
@@ -157,6 +160,15 @@ migrationsUp = do
 appState :: String
 appState = "data/appstate.bin"
 
+initConfig :: IO ()
+initConfig = do
+      encodeFile appState $ AppState mempty []
+      writeFile "data/exception.log" ""
+      Data.Aeson.encodeFile "data/config.json" $
+        AppConfig "Sample config" "BerylliumBlueberry" ([]) "hello@your-email" "<a href='https://github.com/chrissound/BerylliumBlueberry'>Built with BerylliumBlueberry</a>" ""
+          (ConnectInfo "localhost" 5432 "" "" "")
+      >> exitWith ExitSuccess
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -170,10 +182,7 @@ main = do
     ("--migrationsUp":"6":[]) -> connection >>= up6 >> exitWith ExitSuccess
     ("--migrate":[]) -> migrateAll >> exitWith ExitSuccess
     ("--dropAll":[]) -> dropAll >> exitWith ExitSuccess
-    ("--init":[]) -> do
-      encodeFile appState $ AppState mempty []
-      writeFile "data/exception.log" ""
-      >> exitWith ExitSuccess
+    ("--init":[]) -> initConfig
     (_) -> print "Possibly unknown args"
 
   -- encodeFile appState $ AppState mempty []
