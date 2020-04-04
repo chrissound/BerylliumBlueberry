@@ -44,6 +44,11 @@ Alternatively with docker (which in turn uses stack):
 docker build -f docker/Dockerfile -t BerylliumBlueberry .
 ```
 
+To speed things up you can pull the built image from dockerhub:
+```
+docker pull chrissound/berylliumblueberry:latest
+```
+
 ### Extra config
 
 - Generate the intial config files
