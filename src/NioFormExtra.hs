@@ -43,9 +43,10 @@ instance FieldGetterM (AppActionT) (ImageResizedFileUpload) where
             pt' <- imageThumbDataPath
             let fullImagePath = p ++"/"++ cs fn
             let fullImageThumbPath' = pt' ++"/"++ cs fn
-            liftIO $ BSL.writeFile fullImagePath c
-            liftIO $ BSL.writeFile fullImageThumbPath' c
-            (runProcess $ fromString $ "convert " ++ fullImageThumbPath' ++ " -scale 250x250\\> " ++ fullImageThumbPath' ) >>= \case
+            liftIO $ do
+              BSL.writeFile fullImagePath c
+              BSL.writeFile fullImageThumbPath' c
+            (runProcess $ proc "convert" [fullImageThumbPath', "-scale", "250x250"]) >>= \case
               ExitSuccess -> pure $ Right ImageResizedFileUpload
               e -> pure $ Left $ "Unable to resize image: " ++ show e
       Nothing -> do
