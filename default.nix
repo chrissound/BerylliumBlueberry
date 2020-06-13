@@ -1,7 +1,8 @@
 {
   nixpkgs ? import <nixpkgs> {}
+, nixpkgs-unstable ? import <unstable> {}
 , sources ? import ./nix/sources.nix
-, compiler ? "ghc864" } :
+, compiler ? "ghc865" } :
 let
   niv = import sources.nixpkgs {
     overlays = [
@@ -21,5 +22,5 @@ let
   };
 in
 (myHaskellPackages.callCabal2nix "blog3000" (./.) {}).overrideAttrs (oldAttrs: {
-  buildInputs = oldAttrs.buildInputs or [] ++ [ pkgs.imagemagick ];
+  buildInputs = (oldAttrs.buildInputs or []) ++ [ pkgs.imagemagick ];
 })
