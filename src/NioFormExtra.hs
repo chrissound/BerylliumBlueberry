@@ -30,6 +30,7 @@ import System.Process.Typed
 import System.Exit
 import Data.String
 import Data.Word
+import Control.Concurrent
 
 instance FieldGetterM (AppActionT) (ImageResizedFileUpload) where
   getFieldM x = do
@@ -46,7 +47,7 @@ instance FieldGetterM (AppActionT) (ImageResizedFileUpload) where
             liftIO $ do
               BSL.writeFile fullImagePath c
               BSL.writeFile fullImageThumbPath' c
-            (runProcess $ proc "convert" [fullImageThumbPath', "-scale", "250x250"]) >>= \case
+            (runProcess $ proc "convert" [fullImageThumbPath', "-scale", "250x250>", fullImageThumbPath']) >>= \case
               ExitSuccess -> pure $ Right ImageResizedFileUpload
               e -> pure $ Left $ "Unable to resize image: " ++ show e
       Nothing -> do
