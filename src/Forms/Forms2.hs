@@ -38,7 +38,7 @@ myGetFile = myGetFieldAppAction
 myGetFileName :: AppActionFieldT FileUploadName
 myGetFileName = myGetFieldAppAction
 
-myGetFileImageResize :: AppActionFieldT FileUploadName
+myGetFileImageResize :: AppActionFieldT ImageResizedFileUpload
 myGetFileImageResize = myGetFieldAppAction
 
 myGetFieldAppAction :: (Show a, FieldGetterM (AppActionT) a) =>
