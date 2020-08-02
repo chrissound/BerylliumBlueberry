@@ -25,30 +25,30 @@ postForm :: NioForm
 postForm =
   NioForm [
        NioFieldView "" "postId" emptyError
-         NioFieldInputHidden ""
+         NioFieldInputHidden (NioFieldValS "")
      , NioFieldView "postTitle" "postTitle" emptyError
-         NioFieldInputTextShort ""
+         NioFieldInputTextShort (NioFieldValS "")
      , NioFieldView "postEasyId" "postEasyId" emptyError
-         NioFieldInputTextShort ""
+         NioFieldInputTextShort (NioFieldValS "")
      , NioFieldView "postBody" "postBody" emptyError
-         NioFieldInputText ""
+         NioFieldInputText (NioFieldValS "")
      , NioFieldView "postCreated" "postCreated" emptyError
-         NioFieldInputTextShort ""
+         NioFieldInputTextShort (NioFieldValS "")
   ]
 
 postForm' :: Post -> NioForm
 postForm' p =
   NioForm [
        NioFieldView "" "postId" emptyError
-         NioFieldInputHidden (show $ idInteger $ postId p)
+         NioFieldInputHidden (NioFieldValS $ show $ idInteger $ postId p)
      , NioFieldView "postTitle" "postTitle" emptyError
-         NioFieldInputTextShort (cs $ postTitle p)
+         NioFieldInputTextShort (NioFieldValS $ cs $ postTitle p)
      , NioFieldView "postEasyId" "postEasyId" emptyError
-         NioFieldInputTextShort (cs $ postEasyId p)
+         NioFieldInputTextShort (NioFieldValS $ cs $ postEasyId p)
      , NioFieldView "postBody" "postBody" emptyError
-         NioFieldInputText (cs $ postBody p)
+         NioFieldInputText (NioFieldValS $ cs $ postBody p)
      , NioFieldView "postCreated" "postCreated" emptyError
-         NioFieldInputTextShort (show $ postCreated p)
+         NioFieldInputTextShort (NioFieldValS $ show $ postCreated p)
   ]
 
 inputPost :: FormInput -> Either ([FieldEr]) Post
@@ -66,13 +66,13 @@ inputPost fi = do
                      , getFormErrors fi [d]
                      , getFormErrors fi [e]
                      ]
-      a = myGetField isPresent "postId"
-      b = myGetField isPresent "postTitle"
-      c = myGetField (allRules [
+      a = fieldValue isPresent "postId"
+      b = fieldValue isPresent "postTitle"
+      c = fieldValue (allRules [
                          minLength 3
                          ]) "postBody"
-      d = myGetField isPresent "postCreated"
-      e = myGetField (allRules [
+      d = fieldValue isPresent "postCreated"
+      e = fieldValue (allRules [
                          minLength 3
                          ]) "postEasyId"
 

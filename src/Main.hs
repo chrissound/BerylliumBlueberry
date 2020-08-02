@@ -184,8 +184,6 @@ main = do
     ("--dropAll":[]) -> dropAll >> exitWith ExitSuccess
     ("--init":[]) -> initConfig
     (_) -> print "Possibly unknown args"
-
-  -- encodeFile appState $ AppState mempty []
   let port = case args of
         ("--port":x:[]) -> read x
         _ -> 3001
@@ -198,13 +196,12 @@ main = do
       runPeriodicallyBigDrift (fromIntegral day) $ do
         nowTime <- liftIO getCurrentTime
         let expire = addUTCTime (fromIntegral $ day * 2) nowTime
-        print "Clearing sessions"
         atomically $ modifyTVar' sync (clearOldSessions expire)
     _ <- forkIO $ do
-      let s = 3000
+      let s = 30
       threadDelay (s * 10^6)
       runPeriodicallyBigDrift (fromIntegral s) $ do
-        print "Saving session"
+        print "saving state..."
         as <- atomically $ readTVar sync
         encodeFile appState as
     let runActionToIO m = runReaderT (runScottySessionT m) sync

@@ -95,7 +95,7 @@ createFileAction = do
       renderPage' ("Create File") (Just ("Error submitting comment", NotificationError)) (extra)
 
 form :: FormInput -> AppAction (Either NioForm File)
-form = myRunFormM Forms.File.postForm inputFile 
+form = runInputForm' Forms.File.postForm inputFile 
 
 editFileAction :: Int -> AppAction ()
 editFileAction x = do

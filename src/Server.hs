@@ -18,6 +18,7 @@ import Data.Time.Calendar
 import User
 import GHC.Generics
 import qualified Data.Binary.Orphans
+import qualified Data.Binary.Instances
 import Models.PostType
 import Data.Maybe
 

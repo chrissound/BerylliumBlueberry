@@ -81,16 +81,43 @@ example = testGroup "Unit tests"
         (rootUrl ++ (renderPublicUrl AdminCreateImage))
         (
           [
-          (partFile "imageFile" "/home/chris/Temp/yolo.png")
+          (partFile "fileFile" "/home/chris/Temp/yolo.png")
           ] ++ postFieldsToPart
           [
-            ("imageTitle","test")
-          , ("imageEasyId","test")
+            ("fileTitle","test")
+          , ("fileEasyId","test")
           ]
         )
+
+      r'' <- get "http://localhost:3001/data/uploads/image/yolo.png"
+      isStatusCode r'' 200
+
       isStatusCode (r' ^. hrFinalResponse) 200
   ,
-    testCase "post post and delete" $ do
+    testCase "post file" $ do
+      sess <- S.newSession
+      _ <- login sess
+      r' <- S.customHistoriedPayloadMethodWith
+        "POST"
+        defaults
+        sess
+        (rootUrl ++ (renderPublicUrl AdminCreateFile))
+        (
+          [
+          (partFile "fileFile" "/home/chris/Temp/yolo.png")
+          ] ++ postFieldsToPart
+          [
+            ("fileTitle","test")
+          , ("fileEasyId","test")
+          ]
+        )
+
+      r'' <- get "http://localhost:3001/files/yolo.png"
+      isStatusCode r'' 200
+
+      isStatusCode (r' ^. hrFinalResponse) 200
+  ,
+    testCase "post post and comment" $ do
       sess <- S.newSession
       _ <- login sess
       r <- S.customHistoriedPayloadMethodWith
@@ -109,6 +136,23 @@ example = testGroup "Unit tests"
         )
       let r' = snd (head (r ^. hrRedirects))
       isRedirected r' $ cs (renderPublicUrl ListPost)
+      -- post comment
+      rc <- S.customHistoriedPayloadMethodWith
+        "POST"
+        defaults
+        sess
+        (rootUrl ++ (renderPublicUrl CreateCommentOnPost))
+        (
+          postFieldsToPart
+          [
+            ("postId","129")
+          , ("authorAlias","chris")
+          , ("commentBody","hey chris888978")
+          , ("commentId","")
+          ]
+        )
+      let rc' = (rc ^. hrFinalResponse)
+      isStatusCode rc' 200
       -- r2 <- S.customHistoriedPayloadMethodWith
       --   "GET"
       --   defaults
@@ -138,7 +182,7 @@ example = testGroup "Unit tests"
               , ("siteRedirectTo-0", "zzz")
               ]
       case (inputPost i) of
-        Right x -> pPrint x
+        Right _ -> pure ()
         Left e -> do
           pPrint $ fmap ((,) <$> fst <*> (friendlyError' . snd)) e
       True  @?= True

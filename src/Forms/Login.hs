@@ -24,9 +24,9 @@ loginForm' :: NioForm
 loginForm' = 
   NioForm [
        NioFieldView "Username" "user" emptyError
-         NioFieldInputTextShort ""
+         NioFieldInputTextShort $ NioFieldValS ""
      , NioFieldView "Password" "password" emptyError
-         NioFieldInputTextShort ""
+         NioFieldInputTextShort $ NioFieldValS ""
      ]
 
 inputLogin' :: Form' LoginRequest
@@ -38,8 +38,8 @@ inputLogin' = do
       , getFormErrors z [b]
       ])
   where
-    a = myGetField isPresent "user"
-    b = myGetField isPresent "password"
+    a = fieldValue isPresent "user"
+    b = fieldValue isPresent "password"
 
 -- loginForm :: Monad m => Form (Html ()) m LoginRequest
 -- loginForm =

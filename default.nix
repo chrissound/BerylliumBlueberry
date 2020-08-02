@@ -16,7 +16,7 @@ let
       niobiumcoconut  = self.callCabal2nix "niobiumcoconut"
         (builtins.fetchGit {
           url = "https://github.com/chrissound/NiobiumCoconut.git";
-          rev = "76f8ad16abc7d3e5474df9ffe9672bdf8a6593f5";
+          rev = "18886b6276e61d62b9bfb5cfb71b8892c9fd2d30";
         }) {};
     };
   };

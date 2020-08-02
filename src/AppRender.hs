@@ -16,6 +16,7 @@ import Models.Image as Image
 import AppConfig
 import NioFormHtml
 import NioFormTypes
+import NioForm
 import Database.PostgreSQL.ORM
 
 renderPage :: Text -> Html () -> AppAction ()
@@ -46,7 +47,7 @@ formAction ::
   -> (t -> AppAction ())
   -> AppAction ()
 formAction f i htmlf  t ee a = do
-  (scottyFormInput >>= pure . myRunForm f i) >>= \case
+  (scottyFormInput >>= pure . runInputForm f i) >>= \case
     Right x -> a x
     Left e -> renderPage t (panelWithErrorView t (Just  ee) $ htmlf e)
 

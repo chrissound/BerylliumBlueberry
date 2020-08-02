@@ -12,7 +12,8 @@ dependencies:
 - base
 - base64-bytestring
 - binary
-- binary-orphans <= 0.1.8.0
+- binary-orphans
+- binary-instances
 - bytestring
 - containers
 - cookie
@@ -24,7 +25,7 @@ dependencies:
 - http-types
 - lucid
 - mtl
-- niobiumcoconut
+- niobiumcoconut >= 0.4.0.0
 - pandoc
 - postgresql-orm
 - postgresql-simple

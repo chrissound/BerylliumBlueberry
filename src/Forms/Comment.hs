@@ -17,6 +17,9 @@ import Forms.Forms2
 
 --import DigestiveFunctorsPostgreSQL
 --import Forms.Forms
+
+import NioForm
+import NioFormTypes
 import Models.Post as MdlP
 import Models.Comment as MdlC
 -- import NioFormExtra
@@ -25,27 +28,35 @@ import Models.Comment as MdlC
 commentForm :: NioForm
 commentForm =
   NioForm [
-       NioFieldView "" "commentId" emptyError
-         NioFieldInputHidden ""
-     , NioFieldView "" "postId" emptyError
-         NioFieldInputHidden ""
+       NioFieldView "" "postId" emptyError
+         NioFieldInputHidden  $ NioFieldValS ""
      , NioFieldView "Your name:" "authorAlias" emptyError
-         NioFieldInputTextShort ""
+         NioFieldInputTextShort  $ NioFieldValS ""
      , NioFieldView "Comment:" "commentBody" emptyError
-         NioFieldInputText ""
+         NioFieldInputText  $ NioFieldValS ""
+    ,
+       NioFieldView "" "commentCreated" emptyError
+         NioFieldInputHidden (NioFieldValS "")
+    ,
+       NioFieldView "" "commentId" emptyError
+         NioFieldInputHidden (NioFieldValS "")
   ]
 
 commentForm' :: Post ->  NioForm
 commentForm' p =
   NioForm [
-       NioFieldView "" "commentId" emptyError
-         NioFieldInputHidden ""
-     , NioFieldView "" "postId" emptyError
-         NioFieldInputHidden (show  $ MdlP.postId p)
+       NioFieldView "" "postId" emptyError
+         NioFieldInputHidden (NioFieldValS $ show  $ MdlP.postId p)
      , NioFieldView "Your name:" "authorAlias" emptyError
-         NioFieldInputTextShort ""
+         NioFieldInputTextShort  $ NioFieldValS ""
      , NioFieldView "Comment:" "commentBody" emptyError
-         NioFieldInputText ""
+         NioFieldInputText  $ NioFieldValS ""
+    ,
+       NioFieldView "" "commentCreated" emptyError
+         NioFieldInputHidden (NioFieldValS "")
+    ,
+       NioFieldView "" "commentId" emptyError
+         NioFieldInputHidden (NioFieldValS "")
   ]
 
 inputComment :: FormInput -> Either ([FieldEr]) Comment
@@ -53,7 +64,7 @@ inputComment = do
   ((liftM6 Comment) <$> a <*> b <*> c <*> d <*> e <*> f) >>= \case
     Right x' -> pure $ pure x'
     Left _ -> (\z -> do
-                  Left $ mydbg "inputComment Left" $ mconcat [
+                  Left $ mconcat [
                        getFormErrors z [a]
                      , getFormErrors z [b]
                      , getFormErrors z [c]
@@ -63,15 +74,15 @@ inputComment = do
                      ]
       )
   where
-      a = myGetField isPresent "commentId"
-      b = myGetField isPresent "postId"
-      c = myGetField (allRules [
+      a = fieldValue isPresent "commentId"
+      b = fieldValue isPresent "postId"
+      c = fieldValue (allRules [
                          minLength 3
                          ]) "commentBody"
-      d = myGetField isPresent "authorAlias"
-      e = myGetField isPresent "approved"
-      f = myGetField isPresent "postCreated"
+      d = fieldValue isPresent "authorAlias"
+      e = const $ pure False
+      f = fieldValue isPresent "postCreated"
 
 
 commentFormLucid :: NioForm -> Html ()
-commentFormLucid nf = nioformHtml $ NioFormHtml nf (R.CreateCommentOnPost)
+commentFormLucid nf = nioformHtml $ NioFormHtml nf R.CreateCommentOnPost

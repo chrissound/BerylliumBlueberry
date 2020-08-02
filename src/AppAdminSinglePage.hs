@@ -27,6 +27,7 @@ import Control.Monad.IO.Class
 import Data.Text
 import Lucid
 import AppPostTypeI
+import NioForm
 
 adminSinglePage :: AppServer ()
 adminSinglePage = do
@@ -80,7 +81,7 @@ createPageAction = do
           Map.insert "approved" "0"
         $ Map.insert "postCreated" (show ct)
         $ Map.fromList initialInput
-  let f = myRunForm Forms.Post2.postForm inputPost $ toList formInput
+  let f = runInputForm Forms.Post2.postForm inputPost $ toList formInput
   case f of
     Right p -> processPost p ((flip panel) Forms.Post2.postForm)
     Left nferr -> do

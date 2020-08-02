@@ -25,7 +25,7 @@ data File = File {
   , fileTitle :: Text
   , fileEasyId :: Text
   , fileCreated :: UTCTimestamp
-  , fileFile :: FileUploadName
+  , fileFile :: FileUpload
   } deriving (Generic, Show)
 
 instance Model File

@@ -9,6 +9,7 @@ import Data.String.Conversions
 import Text.Printf
 import Debug.Trace
 import Control.Monad.IO.Class
+import Text.Pretty.Simple
 
 idInteger :: DBKey -> Int
 idInteger (DBKey x ) = fromIntegral x
@@ -25,3 +26,7 @@ mydbg s = traceShow
   <$> ((++) s . show)
   <*> id
 -- mydbg _ = id
+
+myTrace :: String -> ()
+myTrace s = do
+  trace s ()

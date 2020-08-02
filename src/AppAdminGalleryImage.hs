@@ -20,6 +20,7 @@ import Data.Bool
 import Lucid
 
 import Forms.Image
+import Forms.File (postForm, postForm')
 import NioForm
 import NioFormExtra
 import NioFormTypes
@@ -66,37 +67,38 @@ adminGallery = do
 viewCreateImageAction :: AppAction ()
 viewCreateImageAction = do
   let t = "Create Image"
-  renderPage' t Nothing (panelWithErrorView t Nothing  $ Forms.Image.postFormLucid (Forms.Image.postForm))
+  renderPage' t Nothing (panelWithErrorView t Nothing  $ Forms.Image.postFormLucid (Forms.File.postForm))
 
 createImageAction :: AppAction ()
 createImageAction = do
   let panel m v = panelWithErrorView "Create Image" (m) $ Forms.Image.postFormLucid v
   ct <- liftIO $ getCurrentTime
   initialInput <- scottyInput
-  eid <- maybe "" (id) <$> (pure $ Map.lookup "imageTitle" $ Map.fromList initialInput)
+  eid <- maybe "" (id) <$> (pure $ Map.lookup "fileTitle" $ Map.fromList initialInput)
   let f' =
           toList
-        . Map.insert "imageId" ""
-        . Map.insert "imageCreated" (show ct)
+        . Map.insert "fileId" ""
+        . Map.insert "fileCreated" (show ct)
         . Map.adjust
             (  replace " " "-"
              . (\x -> bool x eid (x == ""))
             )
-            "imageEasyId"
+            "fileEasyId"
         . Map.fromList
   scottyInput >>= (form . f') >>= \case
     Right p -> do
       c <- liftAndCatchIO connection
-      (liftAndCatchIO $ trySave c (p)) >>= \case
+      (liftAndCatchIO $ trySave c p) >>= \case
         Right _ -> redirect $ cs $ R.renderPublicUrl R.ListImage
-        Left e -> renderScottyHtml $ panel (Just $ cs $ show e) (Forms.Image.postForm)
+        Left e -> renderScottyHtml $ panel (Just $ cs $ show e) (Forms.File.postForm)
     Left nferr -> do
       let extra = panel Nothing $ nferr
       liftIO $ pPrint nferr
+      _ <- error "hi"
       renderPage' ("Create Image") (Just ("Error submitting comment", NotificationError)) (extra)
 
 form :: FormInput -> AppAction (Either NioForm Image)
-form = myRunFormM Forms.Image.postForm inputImage 
+form = runInputForm' Forms.File.postForm inputImage 
 
 editImageAction :: Int -> AppAction ()
 editImageAction x = do
@@ -107,7 +109,7 @@ editImageAction x = do
         . Map.insert "imageCreated" (show ct)
         . Map.fromList
   scottyFormInput >>= form . f' >>= \case
-    Right p -> AppAdminGalleryImage.processImage p ((flip panel) Forms.Image.postForm)
+    Right p -> AppAdminGalleryImage.processImage p ((flip panel) Forms.File.postForm)
     Left nferr -> do
       let extra = panel Nothing $ nferr
       renderPage' ("Edit Image") (Just ("Error submitting comment", NotificationError)) (extra)
@@ -122,7 +124,7 @@ editImageAction' x = do
       panelWithErrorView "Edit Image" Nothing
       $ Forms.Image.postEditFormLucid
       (idInteger $ Image.imageId p)
-      (postForm' p)
+      (postForm' $ imageToFile p)
     )
 
 deleteImageAction :: Int -> AppAction ()

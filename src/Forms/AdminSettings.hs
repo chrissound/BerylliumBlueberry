@@ -26,39 +26,39 @@ import Database.PostgreSQL.Simple
 -- data ConfigV = ConfigV String
 
 xxx :: Int -> (Text,Text) -> [NioFieldView]
-xxx x (_,v) = [
+xxx x (f,t) = [
     NioFieldView (cs $ "Redirect from - " ++ show x) (cs $ "siteRedirectFrom" ++ "-" ++ show x)
-      emptyError NioFieldInputTextShort (cs v)
+      emptyError NioFieldInputTextShort (NioFieldValS $ cs f)
   , NioFieldView (cs $ "Redirect to - " ++ show x) (cs $ "siteRedirectTo" ++ "-" ++ show x)
-      emptyError NioFieldInputTextShort (cs v)
+      emptyError NioFieldInputTextShort (NioFieldValS $ cs t)
   ]
 
 postForm :: (Maybe AppConfig) -> NioForm
 postForm conf =
   NioForm $ [
       NioFieldView "Heading"           (cs $ show AppConfigSiteHeading)
-        emptyError NioFieldInputTextShort (maybe "" (cs . siteHeading) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . siteHeading) conf)
     , NioFieldView "Sub heading"       (cs $ show AppConfigSiteSubHeading)
-        emptyError NioFieldInputTextShort (maybe "" (cs . siteSubHeading) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . siteSubHeading) conf)
      ]
   ++
   [
       NioFieldView "Email"             (cs $ show AppConfigSiteContactEmail)
-        emptyError NioFieldInputTextShort (maybe "" (cs . siteContactEmail) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . siteContactEmail) conf)
     , NioFieldView "Side bar html"     (cs $ show AppConfigSiteSideBarHtml)
-        emptyError NioFieldInputTextShort (maybe "" (cs . siteSideBarHtml) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . siteSideBarHtml) conf)
     , NioFieldView "Extra head html"   (cs $ show AppConfigSiteExtraHeadHtml)
-        emptyError NioFieldInputTextShort (maybe "" (cs . siteExtraHeadHtml) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . siteExtraHeadHtml) conf)
     , NioFieldView "Database host"     (cs $ show AppConfigDatabaseConnectionHost)
-        emptyError NioFieldInputTextShort (maybe "" (cs . connectHost . databaseConnection) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . connectHost . databaseConnection) conf)
     , NioFieldView "Database user"     (cs $ show AppConfigDatabaseConnectionUser)
-        emptyError NioFieldInputTextShort (maybe "" (cs . connectUser . databaseConnection) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . connectUser . databaseConnection) conf)
     , NioFieldView "Database password" (cs $ show AppConfigDatabaseConnectionPassword)
-        emptyError NioFieldInputTextShort (maybe "" (cs . connectPassword . databaseConnection) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . connectPassword . databaseConnection) conf)
     , NioFieldView "Database name"     (cs $ show AppConfigDatabaseConnectionName)
-        emptyError NioFieldInputTextShort (maybe "" (cs . connectDatabase . databaseConnection) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (cs . connectDatabase . databaseConnection) conf)
     , NioFieldView "Database port"     (cs $ show AppConfigDatabaseConnectionPort)
-        emptyError NioFieldInputTextShort (maybe "" (show . connectPort . databaseConnection) conf)
+        emptyError NioFieldInputTextShort (NioFieldValS $ maybe "" (show . connectPort . databaseConnection) conf)
   ]
   ++
   maybe [] (mconcat . fmap (\(x,sr) -> xxx x sr) . Data.List.zip [0..] .  siteRedirect) conf
@@ -82,11 +82,11 @@ inputDatabaseConnectionPost fi = do
         , getFormErrors fi [d]
         , getFormErrors fi [e]
         ]
-      a = myGetField isPresent (show AppConfigDatabaseConnectionHost)
-      b = myGetField isPresent (show AppConfigDatabaseConnectionPort)
-      c = myGetField isPresent (show AppConfigDatabaseConnectionUser)
-      d = myGetField isPresent (show AppConfigDatabaseConnectionPassword)
-      e = myGetField isPresent (show AppConfigDatabaseConnectionName)
+      a = fieldValue isPresent (show AppConfigDatabaseConnectionHost)
+      b = fieldValue isPresent (show AppConfigDatabaseConnectionPort)
+      c = fieldValue isPresent (show AppConfigDatabaseConnectionUser)
+      d = fieldValue isPresent (show AppConfigDatabaseConnectionPassword)
+      e = fieldValue isPresent (show AppConfigDatabaseConnectionName)
 
 inputPost :: FormInput -> Either ([FieldEr]) AppConfig
 inputPost fi = do
@@ -107,26 +107,26 @@ inputPost fi = do
         , getFormErrors fi [e]
         , getFormErrors fi [f]
         ]
-      a = myGetField isPresent (show AppConfigSiteHeading)
-      b = myGetField isPresent (show AppConfigSiteSubHeading)
-      c = myff isPresent isPresent "siteRedirectFrom" "siteRedirectTo"
-      d = myGetField isPresent (show AppConfigSiteContactEmail)
-      e = myGetField isPresent (show AppConfigSiteSideBarHtml)
-      f = myGetField isPresent (show AppConfigSiteExtraHeadHtml)
+      a = fieldValue isPresent (show AppConfigSiteHeading)
+      b = fieldValue isPresent (show AppConfigSiteSubHeading)
+      c = fieldValue isPresent ("siteRedirectFrom", "siteRedirectTo")
+      d = fieldValue isPresent (show AppConfigSiteContactEmail)
+      e = fieldValue isPresent (show AppConfigSiteSideBarHtml)
+      f = fieldValue isPresent (show AppConfigSiteExtraHeadHtml)
 
-myff :: (Show a, FieldGetter a, Show b, FieldGetter b)
-  => NioValidateField a
-  -> NioValidateField b
-  -> NioFormKey -> NioFormKey -> FormInput -> Either FieldEr [(a, b)]
-myff nv nv2 k k2 fi = case (,) <$> myGetFieldArray nv k fi <*> myGetFieldArray nv2 k2 fi of
-  Right (x, x') -> pure $ Data.List.zip x x'
-  Left e -> Left e
+-- myff :: (Show a, FieldGetter a, Show b, FieldGetter b)
+--   => NioValidateField a
+--   -> NioValidateField b
+--   -> NioFormKey -> NioFormKey -> FormInput -> Either FieldEr [(a, b)]
+-- myff nv nv2 k k2 fi = case (,) <$> myGetFieldArray nv k fi <*> myGetFieldArray nv2 k2 fi of
+--   Right (x, x') -> pure $ Data.List.zip x x'
+--   Left e -> Left e
 
-myGetFieldArray :: (Show a, FieldGetter a)
-  => NioValidateField a
-  -> NioFormKey -> FormInput -> Either FieldEr [a]
-myGetFieldArray nv k fi = sequence $ (\x -> myGetField nv x fi) <$> hmm 0
-  where
-  hmm i = case (Data.List.find ((==) (k ++ "-" ++ show i) . fst) fi) of
-    Just x -> [fst x] ++ hmm (i + 1)
-    Nothing -> []
+-- myGetFieldArray :: (Show a, FieldGetter a)
+--   => NioValidateField a
+--   -> NioFormKey -> FormInput -> Either FieldEr [a]
+-- myGetFieldArray nv k fi = sequence $ (\x -> myGetField nv x fi) <$> hmm 0
+--   where
+--   hmm i = case (Data.List.find ((==) (k ++ "-" ++ show i) . fst) fi) of
+--     Just x -> [fst x] ++ hmm (i + 1)
+--     Nothing -> []

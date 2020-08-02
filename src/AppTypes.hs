@@ -16,8 +16,8 @@ type AppServer a = ScottyT L.Text App a
 type AppAction a = ActionT L.Text App a
 type AppActionT = ActionT L.Text App
 
-data FileUpload = FileUpload deriving Show
-data ImageResizedFileUpload = ImageResizedFileUpload deriving Show
+data FileUpload = FileUpload String deriving Show
+data ImageResizedFileUpload = ImageResizedFileUpload String deriving Show
 newtype FileUploadName = FileUploadName String deriving Show
 -- data FileUploadImage = FileUploadImage deriving Show
 

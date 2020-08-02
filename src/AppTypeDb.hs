@@ -7,6 +7,10 @@ import Database.PostgreSQL.Simple.FromField
 
 import AppTypes
 
-instance ToField FileUploadName where toField (FileUploadName x) = toField x
-instance FromField FileUploadName where
-  fromField f dat = FileUploadName <$> fromField f dat 
+instance ToField FileUpload where toField (FileUpload x) = toField x
+instance FromField FileUpload where
+  fromField f dat = FileUpload <$> fromField f dat 
+
+instance FromField ImageResizedFileUpload where
+  fromField f dat = ImageResizedFileUpload <$> fromField f dat 
+instance ToField ImageResizedFileUpload where toField (ImageResizedFileUpload x) = toField x

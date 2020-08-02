@@ -13,6 +13,7 @@ import AppConfig
 import Control.Monad.Trans
 import Data.Map as Map
 import Data.Aeson
+import NioForm
 
 import Forms.AdminSettings
 
@@ -29,10 +30,10 @@ adminSettings = do
     verifyAuth
     let t = "Settings"
     formInput <- scottyInput
-    case ((myRunForm (Forms.AdminSettings.postForm Nothing) inputPost) formInput) of
+    case ((runInputForm (Forms.AdminSettings.postForm Nothing) inputPost) formInput) of
       Right conf -> do
         liftIO $ encodeFile "data/config.json" (conf  :: AppConfig)
-        liftIO $ encodeFile "data/configxxx.json" (conf  :: AppConfig)
+        liftIO $ encodeFile "data/configxxx.json" (conf  :: AppConfig) -- ??
         renderPage' t
           (Just ("Saved", NotificationInfo))
           (panelWithErrorView t Nothing $ Forms.AdminSettings.postFormLucid (Forms.AdminSettings.postForm $ Just conf))

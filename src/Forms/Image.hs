@@ -15,38 +15,40 @@ import Control.Monad
 
 import Lucid
 import Forms.Forms2
+import Forms.File
 import Models.Image
+import Models.File
 import AppCommon
 
-postForm :: NioForm
-postForm =
-  NioForm [
-       NioFieldView "" "imageId" emptyError
-         NioFieldInputHidden ""
-     , NioFieldView "imageTitle" "imageTitle" emptyError
-         NioFieldInputTextShort ""
-     , NioFieldView "imageEasyId" "imageEasyId" emptyError
-         NioFieldInputTextShort ""
-     , NioFieldView "imageCreated" "imageCreated" emptyError
-         NioFieldInputTextShort ""
-     , NioFieldView "imageFile" "imageFile" emptyError
-         NioFieldInputFile ""
-  ]
+--postForm :: NioForm
+--postForm =
+  --NioForm [
+       --NioFieldView "" "imageId" emptyError
+         --NioFieldInputHidden (NioFieldValS "")
+     --, NioFieldView "imageTitle" "imageTitle" emptyError
+         --NioFieldInputTextShort (NioFieldValS "")
+     --, NioFieldView "imageEasyId" "imageEasyId" emptyError
+         --NioFieldInputTextShort (NioFieldValS "")
+     --, NioFieldView "imageCreated" "imageCreated" emptyError
+         --NioFieldInputTextShort (NioFieldValS "")
+     --, NioFieldView "imageFile" "imageFile" emptyError
+         --NioFieldInputFile (NioFieldValS "")
+  --]
 
-postForm' :: Image -> NioForm
-postForm' p =
-  NioForm [
-       NioFieldView "" "imageId" emptyError
-         NioFieldInputHidden (show $ idInteger $ imageId p)
-     , NioFieldView "imageTitle" "imageTitle" emptyError
-         NioFieldInputTextShort (cs $ imageTitle p)
-     , NioFieldView "imageEasyId" "imageEasyId" emptyError
-         NioFieldInputTextShort (cs $ imageEasyId p)
-     , NioFieldView "imageCreated" "imageCreated" emptyError
-         NioFieldInputText (show $ imageCreated p)
-     , NioFieldView "imageFile" "imageFile" emptyError
-         NioFieldInputTextShort ""
-  ]
+--postForm' :: Image -> NioForm
+--postForm' p =
+  --NioForm [
+       --NioFieldView "" "imageId" emptyError
+         --NioFieldInputHidden (NioFieldValS $ show $ idInteger $ imageId p)
+     --, NioFieldView "imageTitle" "imageTitle" emptyError
+         --NioFieldInputTextShort (NioFieldValS $ cs $ imageTitle p)
+     --, NioFieldView "imageEasyId" "imageEasyId" emptyError
+         --NioFieldInputTextShort (NioFieldValS $ cs $ imageEasyId p)
+     --, NioFieldView "imageCreated" "imageCreated" emptyError
+         --NioFieldInputText (NioFieldValS $ show $ imageCreated p)
+     --, NioFieldView "imageFile" "imageFile" emptyError
+         --NioFieldInputTextShort (NioFieldValS "")
+  --]
 
 postFormLucid :: NioForm -> Html ()
 postFormLucid nf = nioformHtml $ NioFormHtml nf (R.AdminCreateImage)
@@ -79,28 +81,13 @@ postEditFormLucid x nf = nioformHtml $ NioFormHtml nf (R.AdminEditImage x )
 
 inputImage :: FormInput -> AppAction (Either [FieldEr] Image)
 inputImage fi = do
-  allErrors' <- mconcat <$> sequence (allErrors :: [AppActionT [FieldEr]])
-  f' <- f fi
-  case f' of
-    Right _ ->
-      (first $ const allErrors')
-      <$>
-      ((liftM5 . liftM5) Image <$> a <*> b <*> c <*> d <*> e)  fi
-    Left _ -> pure $ Left allErrors'
-  where
-      allErrors = [
-          getFormErrorsM fi [a]
-        , getFormErrorsM fi [b]
-        , getFormErrorsM fi [c]
-        , getFormErrorsM fi [d]
-        , getFormErrorsM fi [d]
-        , getFormErrorsM fi [f]
-        ] :: [AppActionT [FieldEr]]
-      a = pure <$> myGetField isPresent "imageId"
-      b = pure <$> myGetField isPresent "imageTitle"
-      c = pure <$> myGetField isPresent "imageEasyId"
-      d = pure <$> myGetField isPresent "imageCreated"
-      e = myGetFileName isPresent "imageFile"
-      f = myGetFileImageResize always "imageFile"
+  file' <- inputFile fi
+  x <- fieldValue' isPresent "fileFile" fi :: AppAction (Either FieldEr ImageResizedFileUpload)
+  case (file', x) of
+    (Right (File a b c d _), Right x') -> pure $ pure $ Image a b c d x'
+    _ -> do
+      liftIO $ pPrint file'
+      liftIO $ pPrint x
+      error "aaaaaaaaaaaa"
 
 

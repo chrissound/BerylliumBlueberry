@@ -32,18 +32,18 @@ fileView sv file = do
       img_ [ src_ $ cs $ "/data/uploads/file/" ++ (fileSource)]
     sideBarView sv
   where
-    fileSource = (\(FileUploadName x) -> x) $ M.fileFile file
+    fileSource = (\(FileUpload x) -> x) $ M.fileFile file
 
 filesView :: SiteView -> [M.File] -> (M.File -> Html ()) -> Html ()
 filesView sv files fileHook = do
   basicContent sv "Files" $ do
     with table_ [class_ "filesTable"] $ do
       forM_ files $ \file -> do
-        let fileSource = (\(FileUploadName x) -> x) $ M.fileFile file
+        let fileSource = (\(FileUpload x) -> x) $ M.fileFile file
         tr_ $ do
           td_ $ pure ()
           td_ $ do
-            with a_ [ href_ (fromString $ R.renderStrPublicUrl $ R.DownloadFile $ (\(FileUploadName x) -> x) $ M.fileFile file) ] $ fromString $ cs $ M.fileTitle file
+            with a_ [ href_ (fromString $ R.renderStrPublicUrl $ R.DownloadFile $ (\(FileUpload x) -> x) $ M.fileFile file) ] $ fromString $ cs $ M.fileTitle file
         with tr_ [class_ "xyz"] $ do
           with td_ [class_ "date"] $ do
             fileHook file

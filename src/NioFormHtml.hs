@@ -2,11 +2,11 @@
 {-# OPTIONS -Wno-unused-imports #-}
 {-# OPTIONS -Wno-unused-matches #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 module NioFormHtml where
 
 import Lucid
 import NioForm
-import NioFormM
 import NioFormTypes
 import NioFormInstances
 import NioFormExtra
@@ -25,7 +25,6 @@ data NioFormHtml = NioFormHtml {
   , action :: PublicRoute
   }
 
-
 friendlyError :: NioFieldError -> Html ()
 friendlyError = p_ . fromString . friendlyError'
 
@@ -40,6 +39,11 @@ nioformHtml (NioFormHtml (NioForm nf) action') = do
     , class_ "blockInputs"
     , enctype_ "multipart/form-data"
     ] $ do
+      nioformHtmlFields nf
+      input_ [type_ "submit"]
+
+nioformHtmlFields :: [NioFieldView] -> Html ()
+nioformHtmlFields nf = do
       forM_ nf $ \nfv@(NioFieldView a b ers nfi _) -> do
         when (length ers > 0)
           (alertBox (BootAlertWarn)
@@ -51,40 +55,75 @@ nioformHtml (NioFormHtml (NioForm nf) action') = do
           NioFieldInputFile -> do
             input_ [
                 type_ "file"
-              , name_ (fromString $ cs $ fvId nfv)
-              , value_ (fromString $ cs $ fvValue nfv)
+              , name_ (fscs $ fvId nfv)
+              , id_ (fscs $ fvId nfv)
+              , value_ (fscs $ (case fvValue nfv of; NioFieldValS s -> s; NioFieldValM s -> unlines s))
+              ]
+          NioFieldInputDigit -> do
+            with label_ 
+              [for_ (fscs $ fvId nfv)]
+              $ fscs $ fvLabel nfv
+            input_ [
+                type_ "text"
+              , name_ (fscs $ fvId nfv)
+              , id_ (fscs $ fvId nfv)
+              , value_ (fscs $ (case fvValue nfv of; NioFieldValS s -> s; NioFieldValM s -> unlines s))
               ]
           NioFieldInputHidden -> do
             input_ [
                 type_ "hidden"
-              , name_ (fromString $ cs $ fvId nfv)
-              , value_ (fromString $ cs $ fvValue nfv)
+              , name_ (fscs $ fvId nfv)
+              , id_ (fscs $ fvId nfv)
+              , value_ $ fscs (case fvValue nfv of; NioFieldValS s -> s; NioFieldValM s -> unlines s)
               ]
           NioFieldInputText -> do
-            label_ $ fromString $ cs $ fvLabel nfv
-            textarea_ [type_ "text", name_ (fromString $ cs $ fvId nfv)] $ fromString $ fvValue nfv
+            with label_ 
+              [for_ (fscs $ fvId nfv)]
+              $ fscs $ fvLabel nfv
+            textarea_
+              [ type_ "text"
+              , name_ (fscs $ fvId nfv)
+              , id_ (fscs $ fvId nfv)
+              ] $ fscs $ (case fvValue nfv of; NioFieldValS s -> s; NioFieldValM s -> unlines s)
             br_ []
           NioFieldInputTextShort -> do
-            label_ $ fromString $ cs $ fvLabel nfv
+            with label_ 
+              [for_ (fscs $ fvId nfv)]
+              $ fscs $ fvLabel nfv
             input_ [
                 type_ "text"
-              , name_ (fromString $ cs $ fvId nfv)
-              , value_ (fromString $ cs $ fvValue nfv)
+              , name_ (fscs $ fvId nfv)
+              , id_ (fscs $ fvId nfv)
+              , value_ (fscs $ (case fvValue nfv of; NioFieldValS s -> s; NioFieldValM s -> unlines s))
               ]
             br_ []
-          _ -> error "Invalid input field..."
-      input_ [type_ "submit"]
+          NioFieldInputBool c -> do
+            with label_ 
+              [for_ ((fscs $ case fvValue nfv of; NioFieldValS s -> s; NioFieldValM s -> unlines s))]
+              $ fscs $ fvLabel nfv
+            input_ $ (if c then (checked_ :) else id) [
+                type_ "checkbox"
+              , name_ (fscs $ fvId nfv)
+              , id_ (fscs $ case fvValue nfv of; NioFieldValS s -> s; NioFieldValM s -> unlines s)
+              , value_ (fscs $ case fvValue nfv of; NioFieldValS s -> s; NioFieldValM s -> unlines s)
+              ]
+            br_ []
+          NioFieldInputLabled multi kv -> do
+            with label_ 
+              [for_ (fscs $ fvId nfv)]
+              $ fscs $ fvLabel nfv
+            _ <- with select_ ([
+                name_ (fscs $ fvId nfv)
+              , id_ (fscs $ fvId nfv)
+              ] ++ [multiple_ "multiple" | multi])
+              $ sequence $ fmap
+                (\(x',y') -> do
+                  let y'' = ((case fvValue nfv of; NioFieldValS s -> pure s; NioFieldValM s -> s)) :: [String]
+                  (with option_ $ [value_ y'] ++ [ selected_ "" | elem (cs y') y''])
+                    $ fscs x'
+                )
+                kv
+            br_ []
 
-myRunForm ::
-  NioForm
-  -> (FormInput -> Either [FieldEr] a)
-  -> FormInput
-  -> Either NioForm a
-myRunForm nf = runInputForm nf
-
-myRunFormM :: (Monad m) =>
-  NioForm
-  -> (FormInput -> m (Either [FieldEr] a))
-  -> FormInput
-  -> m (Either NioForm a)
-myRunFormM nf = runInputFormM nf
+fscs :: (ConvertibleStrings a String, IsString b) => a -> b
+fscs = fromString . cs

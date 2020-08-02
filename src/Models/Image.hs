@@ -18,6 +18,7 @@ import System.Directory
 import AppTypeDb
 import Data.List
 import Data.Function
+import Models.File
 
 
 data Image = Image {
@@ -25,10 +26,13 @@ data Image = Image {
   , imageTitle :: Text
   , imageEasyId :: Text
   , imageCreated :: UTCTimestamp
-  , imageFile :: FileUploadName
+  , imageFile :: ImageResizedFileUpload
   } deriving (Generic, Show)
 
 instance Model Image
+
+imageToFile :: Image -> Models.File.File
+imageToFile (Image a b c d (ImageResizedFileUpload e)) = File a b c d (FileUpload e)
 
 filterEid :: Text -> Maybe Text
 filterEid s = case (Prelude.all (== True) $ Prelude.map (\x -> or [isAlphaNum x, x == '-']) $ cs s) of

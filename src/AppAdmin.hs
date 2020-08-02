@@ -117,7 +117,7 @@ createPostAction = do
             )
             "postEasyId"
         $ Map.fromList initialInput
-  case myRunForm Forms.Post2.postForm inputPost $ toList formInput of
+  case runInputForm Forms.Post2.postForm inputPost $ toList formInput of
     Right p -> do
       c <- liftAndCatchIO connection
       (liftAndCatchIO $ trySave c (preProcessPost p)) >>= \case
@@ -138,7 +138,7 @@ editPostAction :: Int -> AppAction ()
 editPostAction x = do
   let panel m v = panelWithErrorView "Edit Post" (m) $ Forms.Post2.postEditFormLucid x v
   formInput <- scottyFormInput
-  let f = myRunForm Forms.Post2.postForm inputPost $ formInput
+  let f = runInputForm Forms.Post2.postForm inputPost $ formInput
   case f of
     Right p -> AppAdmin.processPost p ((flip panel) Forms.Post2.postForm)
     Left nferr -> do

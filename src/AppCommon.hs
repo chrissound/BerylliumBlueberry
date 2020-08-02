@@ -99,7 +99,7 @@ getLoggedInUser = do
     Nothing -> return Nothing
 
 
-todoMaybeQuickError :: Maybe a -> AppAction a
+todoMaybeQuickError :: Monad m => Maybe a -> m a
 todoMaybeQuickError (Just x) = pure x
 todoMaybeQuickError Nothing = error "???"
 

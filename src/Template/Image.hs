@@ -31,14 +31,14 @@ imageView sv image = do
       img_ [ src_ $ cs $ "/data/uploads/image/" ++ (fileSource)]
     sideBarView sv
   where
-    fileSource = (\(FileUploadName x) -> x) $ M.imageFile image
+    fileSource = (\(ImageResizedFileUpload x) -> x) $ M.imageFile image
 
 imagesView :: SiteView -> [M.Image] -> (M.Image -> Html ()) -> Html ()
 imagesView sv images imageHook = do
   basicContent sv "Gallery" $ do
     with table_ [class_ "imagesTable"] $ do
       forM_ images $ \image -> do
-        let fileSource = (\(FileUploadName x) -> x) $ M.imageFile image
+        let fileSource = (\(ImageResizedFileUpload x) -> x) $ M.imageFile image
         tr_ $ do
           td_ $ pure ()
           td_ $ do
