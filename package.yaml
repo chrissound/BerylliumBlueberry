@@ -26,6 +26,7 @@ dependencies:
 - lucid
 - mtl
 - niobiumcoconut >= 0.4.0.0
+- niobiumcoconut-lucid
 - pandoc
 - postgresql-orm
 - postgresql-simple

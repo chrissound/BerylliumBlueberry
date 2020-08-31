@@ -70,19 +70,8 @@ instance FieldGetter (AppActionT) (FileUpload) String where
           _ -> do
             p <- fileDataPath
             let fullImagePath = p ++"/"++ cs fn
-            liftIO $ print fullImagePath
             liftIO $ BSL.writeFile fullImagePath c
             pure $ Just $ Right $ FileUpload $ cs fn
-      Nothing -> do
-        pure $ Just $ Left (x, [(x, NioFieldErrorV "No file uploaded")])
-
-instance FieldGetter (AppActionT) (FileUploadName) String where
-  getFieldErrorKey k _ = pure $ k
-  getField x i = do
-    x' <- files
-    case find ((== (cs x)) . fst ) (x') of
-      Just (_, FileInfo fn _ _) -> do
-        pure $ Just $ Right $ FileUploadName $ cs fn
       Nothing -> do
         pure $ Just $ Left (x, [(x, NioFieldErrorV "No file uploaded")])
 

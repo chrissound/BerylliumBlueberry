@@ -13,6 +13,7 @@ import Forms.Forms2
 import NioForm
 import NioFormTypes
 import Blog
+import MyNioFormHtml
 
 data LoginRequest
    = LoginRequest

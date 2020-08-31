@@ -8,6 +8,7 @@ import NioFormTypes
 import Data.Text (Text, length)
 import Data.Foldable
 import AppTypes
+import NioFormExtra
 
 type Form' a = FormInput -> Either ([FieldEr]) a
 type FieldMaybe a = (Maybe a -> String -> Maybe (FieldEr))
@@ -19,9 +20,6 @@ type AppActionFieldT a =
 
 myGetFile :: AppActionFieldT FileUpload
 myGetFile = myGetFieldAppAction
-
-myGetFileName :: AppActionFieldT FileUploadName
-myGetFileName = myGetFieldAppAction
 
 myGetFileImageResize :: AppActionFieldT ImageResizedFileUpload
 myGetFileImageResize = myGetFieldAppAction

@@ -28,7 +28,7 @@ rootUrl = "http://localhost:3001"
 isStatusCode :: Response body -> Int -> IO ()
 isStatusCode r sc = do
   rc <- pure (r ^. responseStatus . statusCode)
-  compare rc sc @?= EQ
+  sc @=? rc
 
 isRedirected :: Response body -> ByteString -> IO ()
 isRedirected r l = do
@@ -129,7 +129,7 @@ example = testGroup "Unit tests"
           postFieldsToPart
           [
             ("postId","")
-          , ("postTitle","abc 123 chris")
+          , ("postTitle","abc 323 chris")
           , ("postEasyId","")
           , ("postBody","Yayyyyyy")
           ]
@@ -145,7 +145,7 @@ example = testGroup "Unit tests"
         (
           postFieldsToPart
           [
-            ("postId","129")
+            ("postId","1")
           , ("authorAlias","chris")
           , ("commentBody","hey chris888978")
           , ("commentId","")
