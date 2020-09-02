@@ -36,6 +36,8 @@ data SiteView = SiteView
   , contactEmail :: T.Text
   , sideBarHtml :: T.Text
   , siteExtraHeadHtml :: T.Text
+  , scripts :: [(String, Maybe String, Maybe String)]
+  , css :: [String]
   }
 
 data ButtonSize = Normal | ExtraSmall

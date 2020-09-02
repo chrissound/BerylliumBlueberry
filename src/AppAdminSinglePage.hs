@@ -37,7 +37,25 @@ adminSinglePage = do
   get (webRoute R.AdminCreateSinglePage) $ do
     verifyAuth
     let t = "Create Page"
-    renderPage' t Nothing (panelWithErrorView t Nothing  $ Forms.Post2.pageFormLucid (Forms.Post2.postForm))
+    sv <- (svd t Nothing)
+    let sv' =
+          sv
+            { scripts =
+                   [ ( "//code.jquery.com/jquery-2.2.4.min.js"
+                     , Just "sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44"
+                     , Just "anonymous"
+                     )
+                   , ( "//cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"
+                     , Nothing
+                     , Nothing
+                     )
+                   , ("/static/postform.js", Nothing, Nothing)
+                   ]
+            , css     =
+                [ "//cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css"
+                   ]
+            }
+    renderScottyHtmlSv sv' (panelWithErrorView t Nothing  $ Forms.Post2.pageFormLucid (Forms.Post2.postForm))
   post (webRoute R.AdminCreateSinglePage) $ do
     verifyAuth
     createPageAction

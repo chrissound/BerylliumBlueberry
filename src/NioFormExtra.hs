@@ -10,6 +10,7 @@ module NioFormExtra where
 
 import NioForm
 import NioFormTypes
+import NioFormInstances
 import Database.PostgreSQL.Simple.Time
 import Database.PostgreSQL.ORM
 import Database.PostgreSQL.ORM.Model
@@ -133,4 +134,8 @@ instance Monad m => FieldGetter m DBKey String  where
 
 instance FieldGetter Identity (DBRef a) String where
   getField k i = fmap (fmap (fmap (DBRef))) (getField k i)
+  getFieldErrorKey k _ = pure k
+
+instance FieldGetter Identity PostTags String  where
+  getField k i = fmap (fmap (fmap (PostTags . id . (fmap (cs :: String -> Text))))) (getField k i)
   getFieldErrorKey k _ = pure k

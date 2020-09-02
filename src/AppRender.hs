@@ -33,10 +33,8 @@ withSvRenderPage' :: Text -> MaybeNotification -> (SiteView -> Html ()) -> AppAc
 withSvRenderPage' t n h = siteViewData' t n
   >>= (\sv -> renderScottyHtmlSv sv (h sv))
 
-
 renderScottyHtmlSv :: (ScottyError e, MonadIO m) => SiteView -> Html () -> ActionT e m ()
-renderScottyHtmlSv sv = do
-  html . cs . renderText . (siteView sv)
+renderScottyHtmlSv sv = html . cs . renderText . (siteView sv)
 
 formAction ::
   NioForm
@@ -67,6 +65,8 @@ svd t n = do
       (siteContactEmail appConfig)
       (siteSideBarHtml appConfig)
       (AppConfig.siteExtraHeadHtml appConfig)
+      []
+      []
     ) <$> getLoggedInUser <*> liftIO getPagePosts <*> liftIO getAppConfig <*> (liftAndCatchIO $ findAll c)
 
 siteViewDataDef :: Text -> AppAction SiteView

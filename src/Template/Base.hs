@@ -42,6 +42,12 @@ notificationTypeToBootAlert :: SiteNotification -> BootAlertType
 notificationTypeToBootAlert NotificationInfo = BootAlertInfo
 notificationTypeToBootAlert NotificationError = BootAlertDanger
 
+generateScript :: (String, Maybe String, Maybe String) -> Html ()
+generateScript (a,b,c) = with (script_ "")
+  $ [src_ $ cs a]
+  ++ maybe [] (\b' -> [integrity_ $ cs b']) b
+  ++ maybe [] (\c' -> [crossorigin_ $ cs c']) c
+
 siteView :: SiteView -> Html () -> Html ()
 siteView sv body =
   doctypehtml_ $ do
@@ -56,6 +62,8 @@ siteView sv body =
       link_ [href_ "//use.fontawesome.com/releases/v5.7.0/css/all.css", rel_ "stylesheet"]
       link_ [href_ "//use.fontawesome.com/releases/v5.7.0/css/fontawesome.css", rel_ "stylesheet"]
       link_ [href_ "//use.fontawesome.com/releases/v5.7.0/css/all.css", rel_ "stylesheet"]
+      mconcat $ fmap (\s -> link_ [href_ $ cs s, rel_ "stylesheet"]) $ css sv
+      mconcat $ fmap generateScript $ scripts sv
     body_ $ do
       with div_ [class_ "blog-masthead"] $
         with div_ [class_ "container"] $ do

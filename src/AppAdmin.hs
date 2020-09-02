@@ -96,11 +96,31 @@ loginAction' = do
           redirect $ cs $ R.renderPublicUrl R.Dashboard
         | otherwise -> renderPage t (panelWithErrorView t (Just "Failed to login") $ loginFormLucid' loginForm')
 
+select2sv :: Text -> MaybeNotification -> AppAction SiteView
+select2sv t v = do
+  sv <- svd t v
+  pure $ sv
+    { scripts =
+           [ ( "//code.jquery.com/jquery-2.2.4.min.js"
+             , Just "sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44"
+             , Just "anonymous"
+             )
+           , ( "//cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"
+             , Nothing
+             , Nothing
+             )
+           , ("/static/postform.js", Nothing, Nothing)
+           ]
+    , css     =
+        [ "//cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css"
+           ]
+    }
 
 viewCreatePostAction :: AppAction ()
 viewCreatePostAction = do
   let t = "Create Post"
-  renderPage' t Nothing (panelWithErrorView t Nothing  $ Forms.Post2.postFormLucid (Forms.Post2.postForm))
+  sv <- select2sv t Nothing
+  renderScottyHtmlSv sv (panelWithErrorView t Nothing  $ Forms.Post2.pageFormLucid (Forms.Post2.postForm))
 
 createPostAction :: AppAction ()
 createPostAction = do
@@ -136,27 +156,25 @@ createPostAction = do
 
 editPostAction :: Int -> AppAction ()
 editPostAction x = do
-  let panel m v = panelWithErrorView "Edit Post" (m) $ Forms.Post2.postEditFormLucid x v
+  let t = "Edit Post"
+  let panel m v = panelWithErrorView t (m) $ Forms.Post2.postEditFormLucid x v
   formInput <- scottyFormInput
-  let f = runInputForm Forms.Post2.postForm inputPost $ formInput
-  case f of
-    Right p -> AppAdmin.processPost p ((flip panel) Forms.Post2.postForm)
+  case runInputForm Forms.Post2.postForm inputPost $ formInput of
+    Right p -> do
+      AppAdmin.processPost p (flip panel $ Forms.Post2.postForm)
     Left nferr -> do
+      liftIO $ pPrint nferr
       let extra = panel Nothing $ nferr
-      renderPage' ("Edit Post") (Just ("Error submitting comment", NotificationError)) (extra)
+      sv <- select2sv t Nothing
+      renderScottyHtmlSv sv (panelWithErrorView t (Just "Error submitting comment") extra)
 
 editPostAction' :: Int -> AppAction ()
 editPostAction' x = do
+  let t = "Edit Post"
   p <- getPostElseError x
-  renderPage'
-    "Edit Post"
-    Nothing
-    (
-      panelWithErrorView "Edit Post" Nothing
-      $ Forms.Post2.postEditFormLucid
-      (idInteger $ Post.postId p)
-      (postForm' p)
-    )
+  sv <- select2sv t Nothing
+  let c = Forms.Post2.postEditFormLucid (idInteger $ Post.postId p) (postForm' p)
+  renderScottyHtmlSv sv (panelWithErrorView t Nothing c)
 
 deletePostAction :: Int -> AppAction ()
 deletePostAction x = do

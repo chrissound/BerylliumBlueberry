@@ -128,6 +128,10 @@ up6 c = do
       ]
     ) c
 
+up7 :: Connection -> IO ()
+up7 c = do
+  migrate (add_column "post" "tags" "jsonb") c
+
 dropAll :: IO ()
 dropAll = do
   c <- connection
@@ -180,6 +184,7 @@ main = do
     ("--migrationsUp":"4":[]) -> connection >>= up4 >> exitWith ExitSuccess
     ("--migrationsUp":"5":[]) -> connection >>= up5 >> exitWith ExitSuccess
     ("--migrationsUp":"6":[]) -> connection >>= up6 >> exitWith ExitSuccess
+    ("--migrationsUp":"7":[]) -> connection >>= up7 >> exitWith ExitSuccess
     ("--migrate":[]) -> migrateAll >> exitWith ExitSuccess
     ("--dropAll":[]) -> dropAll >> exitWith ExitSuccess
     ("--init":[]) -> initConfig

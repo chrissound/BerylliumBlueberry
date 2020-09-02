@@ -11,8 +11,12 @@ import Data.Text
 import GHC.Generics
 import Data.String.Conversions
 import Data.String
-
+import           Database.PostgreSQL.Simple.FromField
+import           Database.PostgreSQL.Simple.ToField
+import Data.ByteString.Lazy
 import Common
+import Data.Aeson
+import Data.Aeson.Types
 
 data Post = Post {
     postId :: DBKey
@@ -20,7 +24,21 @@ data Post = Post {
   , postBody :: Text
   , postCreated :: UTCTimestamp
   , postEasyId :: Text
+  , postTags :: PostTags
   } deriving (Generic, Show)
+
+data PostTags = PostTags [Text] deriving Show
+
+getPostTags :: PostTags -> [Text]
+getPostTags (PostTags x) = x
+
+instance FromField PostTags where
+   fromField f x = do
+     parseMaybe parseJSON <$> fromField f x >>= \case
+       Just m' -> pure $ PostTags m'
+       Nothing -> returnError Incompatible f "PostTags ???"
+instance ToField PostTags where
+  toField (PostTags x) = toField $ encode x
 
 instance Model Post
 

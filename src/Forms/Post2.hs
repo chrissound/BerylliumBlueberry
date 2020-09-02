@@ -8,53 +8,41 @@ import NioFormTypes
 import Routes as R
 import Common
 import Control.Monad
-
---import Control.Monad
-
 import Lucid
 import Forms.Forms2
 import MyNioFormHtml
-
---import DigestiveFunctorsPostgreSQL
---import Forms.Forms
 import Models.Post as MdlP
--- import Models.Comment as MdlC
--- import NioFormExtra
---import qualified Routes as R
 
 postForm :: NioForm
-postForm =
-  NioForm [
-       NioFieldView "" "postId" emptyError
-         NioFieldInputHidden (NioFieldValS "")
-     , NioFieldView "postTitle" "postTitle" emptyError
-         NioFieldInputTextShort (NioFieldValS "")
-     , NioFieldView "postEasyId" "postEasyId" emptyError
-         NioFieldInputTextShort (NioFieldValS "")
-     , NioFieldView "postBody" "postBody" emptyError
-         NioFieldInputText (NioFieldValS "")
-     , NioFieldView "postCreated" "postCreated" emptyError
-         NioFieldInputTextShort (NioFieldValS "")
-  ]
+postForm = postForm'' Nothing
 
 postForm' :: Post -> NioForm
-postForm' p =
+postForm' p = postForm'' $ Just p
+
+postForm'' :: Maybe Post -> NioForm 
+postForm'' mp =
   NioForm [
        NioFieldView "" "postId" emptyError
-         NioFieldInputHidden (NioFieldValS $ show $ idInteger $ postId p)
+         NioFieldInputHidden $ maybe (NioFieldValS "") (NioFieldValS . show . idInteger . postId) mp
      , NioFieldView "postTitle" "postTitle" emptyError
-         NioFieldInputTextShort (NioFieldValS $ cs $ postTitle p)
+         NioFieldInputTextShort $ maybe (NioFieldValS "") (NioFieldValS . cs . postTitle) mp
      , NioFieldView "postEasyId" "postEasyId" emptyError
-         NioFieldInputTextShort (NioFieldValS $ cs $ postEasyId p)
+         NioFieldInputTextShort $ maybe (NioFieldValS "") (NioFieldValS . cs . postEasyId) mp
      , NioFieldView "postBody" "postBody" emptyError
-         NioFieldInputText (NioFieldValS $ cs $ postBody p)
+         NioFieldInputText $ maybe (NioFieldValS "") (NioFieldValS . cs . postBody) mp
+     , NioFieldView "postTags" "postTags" emptyError
+         -- NioFieldInputText $ maybe (NioFieldValS "") (NioFieldValS . cs . postBody) mp
+
+        (NioFieldInputLabled True [("Test","hmm"), ("Test123","123hmm")])
+        (NioFieldValM $ maybe [] (const []) mp)
      , NioFieldView "postCreated" "postCreated" emptyError
-         NioFieldInputTextShort (NioFieldValS $ show $ postCreated p)
+         NioFieldInputTextShort $ maybe (NioFieldValS "") (NioFieldValS . show . postCreated) mp
+
   ]
 
 inputPost :: FormInput -> Either ([FieldEr]) Post
 inputPost fi = do
-  (((liftM5 Post) <$> a <*> b <*> c <*> d <*> e) >>= \case
+  (((liftM6 Post) <$> a <*> b <*> c <*> d <*> e <*> f) >>= \case
     Right x' -> pure $ pure x'
     Left _ -> (\_ -> do
                   Left allErrors
@@ -66,6 +54,7 @@ inputPost fi = do
                      , getFormErrors fi [c]
                      , getFormErrors fi [d]
                      , getFormErrors fi [e]
+                     , getFormErrors fi [f]
                      ]
       a = fieldValue isPresent "postId"
       b = fieldValue isPresent "postTitle"
@@ -76,6 +65,7 @@ inputPost fi = do
       e = fieldValue (allRules [
                          minLength 3
                          ]) "postEasyId"
+      f = fieldValue always' "postTags"
 
 postFormLucid :: NioForm -> Html ()
 postFormLucid nf = nioformHtml $ NioFormHtml nf (R.AdminCreatePost)

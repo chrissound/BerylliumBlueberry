@@ -23,6 +23,7 @@ data RouteUrl a b =
               | AdminSettings
               | CreateCommentOnPost
               | ListPost
+              | TaggedPost a
               | AdminCreatePost
               | AdminEditPost a
               | AdminDeletePost a
@@ -49,6 +50,7 @@ instance Show (RouteUrl String b) where
   show (DownloadFile a) =                   a
   show (AdminSettings) =                  "AdminSettings"
   show (CreateCommentOnPost) =            "CreateCommentOnPost"
+  show (TaggedPost a ) =                     "TaggedPost" ++ a
   show (ListPost) =                       "Blog"
   show (AdminCreatePost) =                "AdminCreatePost"
   show (AdminEditPost a) =                "AdminEditPost" ++ a
@@ -88,6 +90,7 @@ class Show a => RouteParam a b where
   normalParam (Dashboard) = Dashboard
   normalParam (AdminSettings) = AdminSettings
   normalParam (ListPost) = ListPost
+  normalParam (TaggedPost x) = TaggedPost $ showfy x
   normalParam (AdminCreatePost) = AdminCreatePost
   normalParam (AdminEditPost x ) = AdminEditPost $ showfy x
   normalParam (AdminDeletePost x ) = AdminDeletePost $ showfy x
@@ -126,6 +129,7 @@ renderUrl r = case normalParam  r of
   Dashboard ->               "/"
   AdminSettings ->           "/admin/settings/"
   ListPost ->                "/post/list"
+  TaggedPost x ->                "/post/tagged/" ++ f r x
   AdminCreatePost ->         "/admin/post/create/"
   AdminDeletePost x ->       "/admin/post/delete/" ++ f r x
   AdminEditPost x ->         "/admin/post/edit/" ++ f r x

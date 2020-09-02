@@ -18,6 +18,9 @@ import Template.Post
 import Forms.Comment
 import Models.Associations
 import Lucid
+import Data.Text (Text)
+import Data.List
+import Network.HTTP.Types
 
 getPostElseError :: Int -> AppAction Post.Post
 getPostElseError x = do
@@ -34,13 +37,28 @@ postsViewPage = do
   (postHook, preHook) <- AppCommon.session >>= \case
     Just _ -> return (postViewExtraAdmin, postsViewExtraAdmin)
     Nothing -> return (postViewExtraEmpty, return ())
-  withSvRenderPage "Blog" (\sv -> preHook <> postsView sv (postV <$> posts) postHook)
+  withSvRenderPage "Blog" (\sv -> preHook <> postsView sv (postV <$> posts) postHook "Blog")
+
+postsViewPageTag :: Text -> AppAction ()
+postsViewPageTag x = do
+  posts <- fmap (filter (elem x . getPostTags . postTags . postV)) $ liftAndCatchIO $ getPagePosts' (PostTypeBlog)
+  case posts of
+    [] -> status status404
+    _ -> do
+      (postHook, preHook) <- AppCommon.session >>= \case
+        Just _ -> return (postViewExtraAdmin, postsViewExtraAdmin)
+        Nothing -> return (postViewExtraEmpty, return ())
+      let t = mconcat $ intersperse " " ["Blog","-",x]
+      withSvRenderPage t (\sv -> preHook <> postsView sv (postV <$> posts) postHook (cs t))
 
 
 listPost :: AppServer ()
 listPost = do
   get (webRoute R.ListPost)$ do
     postsViewPage
+  get (webRoute $ R.TaggedPost "tag") $ do
+    t <- param "tag"
+    postsViewPageTag t
   get (webRoute $ R.ViewPost "postId")$ do
     c <- liftAndCatchIO connection
     (param "postId" >>= return . filterEid)
