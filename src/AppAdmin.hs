@@ -120,7 +120,7 @@ viewCreatePostAction :: AppAction ()
 viewCreatePostAction = do
   let t = "Create Post"
   sv <- select2sv t Nothing
-  renderScottyHtmlSv sv (panelWithErrorView t Nothing  $ Forms.Post2.pageFormLucid (Forms.Post2.postForm))
+  renderScottyHtmlSv sv (panelWithErrorView t Nothing  $ Forms.Post2.postFormLucid (Forms.Post2.postForm))
 
 createPostAction :: AppAction ()
 createPostAction = do
