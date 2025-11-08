@@ -26,6 +26,7 @@ import AppTypes
 imageView :: SiteView -> M.Image -> Html ()
 imageView sv image = do
   div_ [ class_ "row" ] $ do
+    p_ $ fromString $ show image
     div_ [ class_ "col-sm-8 gallery-image" ] $ do
       h1_ [ class_ "blog-image-title" ] $ fromString $ cs $ M.imageTitle image
       img_ [ src_ $ cs $ "/data/uploads/image/" ++ (fileSource)]

@@ -130,7 +130,7 @@ up6 c = do
 
 up7 :: Connection -> IO ()
 up7 c = do
-  migrate (add_column "post" "tags" "jsonb") c
+  migrate (add_column "post" "postTags" "jsonb") c
 
 dropAll :: IO ()
 dropAll = do
