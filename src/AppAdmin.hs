@@ -44,6 +44,7 @@ import AppAdminSinglePage
 import AdminSettings
 import AppAdminGalleryImage
 import AppAdminFile
+import AppAdminComment
 import AppPostTypeI
 
 import Database.PostgreSQL.Simple
@@ -79,6 +80,7 @@ adminServer = do
   adminSettings
   adminGallery
   adminFile
+  adminComment
 
 loginAction :: AppAction ()
 loginAction = do

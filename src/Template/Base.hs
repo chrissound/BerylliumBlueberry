@@ -84,6 +84,7 @@ siteView sv body =
                   fmap (\x -> navItemA (fromString $ R.renderStrPublicUrl x) ( fromString $ show x))
                   [
                     R.AdminListSinglePage
+                  , R.AdminListComment
                   , R.ListFile
                   , R.AdminSettings
                   ]

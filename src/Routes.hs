@@ -38,6 +38,9 @@ data RouteUrl a b =
               | AdminListSinglePage
               | AdminCreateSinglePage
               | AdminDeleteSinglePage a
+              | AdminListComment
+              | AdminApproveComment a
+              | AdminDeleteComment a
               | Register
               | Home
               | Login
@@ -66,6 +69,9 @@ instance Show (RouteUrl String b) where
   show (AdminListSinglePage) =            "AdminListSinglePage"
   show (AdminCreateSinglePage) =          "AdminCreateSinglePage"
   show (AdminDeleteSinglePage a) =        "AdminDeleteSinglePage" ++ a
+  show (AdminListComment) =               "AdminListComment"
+  show (AdminApproveComment a) =          "AdminApproveComment" ++ a
+  show (AdminDeleteComment a) =           "AdminDeleteComment" ++ a
   show (Register) =                       "Register"
   show (Home) =                           "Home"
   show (Login) =                          "Login"
@@ -105,6 +111,9 @@ class Show a => RouteParam a b where
   normalParam (AdminListSinglePage) =AdminListSinglePage
   normalParam (AdminCreateSinglePage) = AdminCreateSinglePage
   normalParam (AdminDeleteSinglePage a) = AdminDeleteSinglePage $ showfy a
+  normalParam (AdminListComment) = AdminListComment
+  normalParam (AdminApproveComment x) = AdminApproveComment $ showfy x
+  normalParam (AdminDeleteComment x) = AdminDeleteComment $ showfy x
   normalParam (Register) = Register
   normalParam (Login) = Login
   normalParam (Home) = Home
@@ -144,6 +153,9 @@ renderUrl r = case normalParam  r of
   AdminListSinglePage ->     "/admin/page/list/"
   AdminCreateSinglePage ->   "/admin/page/create/"
   AdminDeleteSinglePage x -> "/admin/page/delete/" ++ f r x
+  AdminListComment ->        "/admin/comment/list/"
+  AdminApproveComment x ->   "/admin/comment/approve/" ++ f r x
+  AdminDeleteComment x ->    "/admin/comment/delete/" ++ f r x
   Login ->                   "/xyzabcadminlogin"
   Register ->                "/xyzabcadminregister"
 
