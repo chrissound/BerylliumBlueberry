@@ -1,1 +1,1 @@
-args@{...}: (import ./default.nix args).env
+(import ./default.nix {}).env

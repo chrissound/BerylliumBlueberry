@@ -1,8 +1,6 @@
-{
-  nixpkgs ? import <nixpkgs> {}
-, nixpkgs-unstable ? import <unstable> {}
-, sources ? import ./nix/sources.nix
-, compiler ? "ghc865" } :
+{ sources ? import ./nix/sources.nix
+, compiler ? "ghc902"
+} :
 let
   niv = import sources.nixpkgs {
     overlays = [
@@ -11,23 +9,28 @@ let
     config = {};
   };
   pkgs = niv.pkgs;
-  myHaskellPackages = pkgs.haskell.packages.${compiler}.override {
-    overrides = self: super: rec {
-      niobiumcoconut  = import
-        (builtins.fetchGit {
-          url = "https://github.com/chrissound/NiobiumCoconut.git";
-          rev = "18886b6276e61d62b9bfb5cfb71b8892c9fd2d30";
-        }) {};
-      #niobiumcoconut-lucid  = import /home/chris/NewProjects/NiobiumCoconut-Lucid/. {};
-      niobiumcoconut-lucid  = import
-        (builtins.fetchGit {
-          url = "https://github.com/chrissound/NiobiumCoconut-Lucid.git";
-          rev = "d7684ce933005c24cc867acdc30185aaff5da26a";
-        }) {};
-        #(/home/chris/NewProjects/NiobiumCoconut-Lucid/.) {};
-    };
+  src = pkgs.lib.cleanSourceWith {
+    filter = name: type: !(pkgs.lib.hasSuffix ".cabal" name);
+    src = ./.;
   };
+  myHaskellPackages = pkgs.haskellPackages.override {
+      overrides = self: super: rec {
+        niobiumcoconut-lucid  = import (builtins.fetchGit {
+          url = "ssh://root@trycatchchris.co.uk:/root/gitrepo/NiobiumCoconut-Lucid";
+          rev = "9aa6aa32d9b8559e15fd4a4600f811eff6d5ce29";
+        }) {
+          sources = sources;
+          compiler = compiler;
+          niobiumcoconut' = import (builtins.fetchGit {
+            url = "ssh://root@trycatchchris.co.uk:/root/gitrepo/NiobiumCoconut";
+            rev = "dd523ce64eaf14eefb1ae6298656124aeece475b";
+          });
+        };
+        niobiumcoconut = import (builtins.fetchGit {
+            url = "ssh://root@trycatchchris.co.uk:/root/gitrepo/NiobiumCoconut";
+            rev = "dd523ce64eaf14eefb1ae6298656124aeece475b";
+          }) { sources = sources; compiler = compiler; };
+        };
+    };
 in
-(myHaskellPackages.callCabal2nix "blog3000" (./.) {}).overrideAttrs (oldAttrs: {
-  buildInputs = (oldAttrs.buildInputs or []) ++ [ pkgs.imagemagick ];
-})
+myHaskellPackages.callCabal2nix "HaskellNixCabalStarter" (src) {}

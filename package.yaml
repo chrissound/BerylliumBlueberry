@@ -28,9 +28,9 @@ dependencies:
 - niobiumcoconut >= 0.4.0.0
 - niobiumcoconut-lucid
 - pandoc
-- postgresql-orm
 - postgresql-simple
 - pretty-simple
+- neat-interpolation
 - QuickCheck
 - scotty
 - scotty-cookie
@@ -49,8 +49,6 @@ dependencies:
 - pureMD5
 - typed-process
 - MissingH
-# - JuicyPixels
-# - JuicyPixels-extra
 library: 
   ghc-options: -Wall
   source-dirs: src
@@ -58,19 +56,6 @@ executables:
   blog3000-app:
     main: Main.hs
     source-dirs: src
-    ghc-options: -Wall -O2 # -static -threaded
-    # cc-options: -static
-    # ld-options: -static -pthread
-  blog3000-app-test:
-    main: Test.hs
-    source-dirs: src-test
-    ghc-options: -Wall -O2 -main-is Test # -static -threaded 
-    # cc-options: -static
-    # ld-options: -static -pthread
-    dependencies: 
-      - blog3000
-      - wreq
-      - lens
-      - http-client
+    ghc-options: -Wall -O2
 default-extensions: 
   - LambdaCase
