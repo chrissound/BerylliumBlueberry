@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS -Wno-unused-imports #-}
 
 module AppAdminSinglePage where
@@ -9,9 +10,10 @@ import AppCommon
 import qualified Routes as R
 import Blog
 
-import Database.PostgreSQL.ORM
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.ORM.Model
+import Data.String
+import Data.String.Conversions
+import qualified NeatInterpolation as NI
 
 import Models.Post
 import Models.PostType
@@ -67,25 +69,41 @@ adminSinglePage = do
 deletePostAction' :: Int -> AppAction ()
 deletePostAction' x = do
   c <- liftAndCatchIO connection
-  p <- liftAndCatchIO $ findRow c (DBRef $ fromIntegral x)
+  let sqlPost = [NI.text|
+      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
+      FROM "post"
+      WHERE "postId" = ?
+      |]
+  p <- liftAndCatchIO $ (query c (fromString $ cs sqlPost) (Only x) :: IO [Post])
   case p of
-    Just p' -> do
-      d <- liftAndCatchIO $ destroy c (p' :: Post)
-      case d of
-        Right _ -> redirect $ cs $ R.renderPublicUrl R.AdminListSinglePage
-        Left e -> error $ "Validation error:" ++ show e
-    Nothing -> error $ "Post not found: " ++ show p
+    (_p':_) -> do
+      let sqlDelete = [NI.text|
+          DELETE FROM "post"
+          WHERE "postId" = ?
+          |]
+      _ <- liftAndCatchIO $ execute c (fromString $ cs sqlDelete) (Only x)
+      redirect $ cs $ R.renderPublicUrl R.AdminListSinglePage
+    [] -> error $ "Post not found"
 
 singlePageList :: AppAction ()
 singlePageList = do
   c <- liftAndCatchIO connection
-  postTypes <- liftAndCatchIO $ (dbSelect c $ addWhere "\"postType\" = ?" (Only $ fromEnum PostTypePage) (modelDBSelect :: DBSelect PostType))
-  posts <- liftAndCatchIO $ (dbSelect c (modelDBSelect :: DBSelect Post))
+  let sqlPostTypes = [NI.text|
+      SELECT "postTypeId", "postId", "postType"
+      FROM "postType"
+      WHERE "postType" = ?
+      |]
+  postTypes <- liftAndCatchIO $ (query c (fromString $ cs sqlPostTypes) (Only $ fromEnum PostTypePage) :: IO [PostType])
+  let sqlPosts = [NI.text|
+      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
+      FROM "post"
+      |]
+  posts <- liftAndCatchIO $ (query_ c (fromString $ cs sqlPosts) :: IO [Post])
 
   let m = catMaybes $ combineByIntIndex
             PagePost
-            (idIntegerRef . Models.PostType.postId)
-            (idInteger . Models.Post.postId)
+            (Models.PostType.postId)
+            (Models.Post.postId)
             postTypes
             posts
   withSvRenderPage "Pages"  (\sv -> pageViewExtraAdmin' <> pagesView sv m pageViewExtraAdmin)
@@ -109,13 +127,18 @@ createPageAction = do
 processPost :: Post -> (Maybe Text -> Html ()) -> AppAction ()
 processPost p panel = do
   c <- liftAndCatchIO connection
-  (liftAndCatchIO $ trySave c p) >>= \case
-    Right p' -> do
-      (
-        liftAndCatchIO $
-        trySave c (PostType NullKey (DBRef $ fromIntegral . idInteger $ Models.Post.postId p') (fromEnum PostTypePage))
-        ) >>= \case
-        Right _ -> do
-          redirect $ cs $ R.renderPublicUrl R.ListPost
-        Left e -> renderScottyHtml $ panel (Just $ cs $ show e)
-    Left e -> renderScottyHtml $ panel (Just $ cs $ show e)
+  let sqlInsertPost = [NI.text|
+      INSERT INTO "post" ("postTitle", "postBody", "postCreated", "postEasyId", "postTags")
+      VALUES (?, ?, ?, ?, ?)
+      RETURNING "postId"
+      |]
+  postIdResults <- liftAndCatchIO $ (query c (fromString $ cs sqlInsertPost) (postTitle p, postBody p, postCreated p, postEasyId p, postTags p) :: IO [Only Int])
+  case postIdResults of
+    (Only insertedPostId:_) -> do
+      let sqlInsertPostType = [NI.text|
+          INSERT INTO "postType" ("postTypeId", "postId", "postType")
+          VALUES (0, ?, ?)
+          |]
+      _ <- liftAndCatchIO $ execute c (fromString $ cs sqlInsertPostType) (insertedPostId, fromEnum PostTypePage :: Int)
+      redirect $ cs $ R.renderPublicUrl R.ListPost
+    [] -> renderScottyHtml $ panel (Just "Failed to insert post")

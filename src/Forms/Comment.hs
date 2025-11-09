@@ -23,10 +23,11 @@ import NioForm
 import NioFormTypes
 import Models.Post as MdlP
 import Models.Comment as MdlC
+import qualified MyNioFieldError as MNE
 -- import NioFormExtra
 --import qualified Routes as R
 
-commentForm :: NioForm
+commentForm :: NioForm MNE.MyNioFieldError
 commentForm =
   NioForm [
        NioFieldView "" "postId" emptyError
@@ -43,7 +44,7 @@ commentForm =
          NioFieldInputHidden (NioFieldValS "")
   ]
 
-commentForm' :: Post ->  NioForm
+commentForm' :: Post ->  NioForm MNE.MyNioFieldError
 commentForm' p =
   NioForm [
        NioFieldView "" "postId" emptyError
@@ -60,7 +61,7 @@ commentForm' p =
          NioFieldInputHidden (NioFieldValS "")
   ]
 
-inputComment :: FormInput -> Either ([FieldEr]) Comment
+inputComment :: FormInput -> Either ([FieldEr MNE.MyNioFieldError]) Comment
 inputComment = do
   ((liftM6 Comment) <$> a <*> b <*> c <*> d <*> e <*> f) >>= \case
     Right x' -> pure $ pure x'
@@ -75,15 +76,15 @@ inputComment = do
                      ]
       )
   where
-      a = fieldValue isPresent "commentId"
-      b = fieldValue isPresent "postId"
+      a = fieldValue isPresent ("commentId" :: String)
+      b = fieldValue isPresent ("postId" :: String)
       c = fieldValue (allRules [
                          minLength 3
-                         ]) "commentBody"
-      d = fieldValue isPresent "authorAlias"
+                         ]) ("commentBody" :: String)
+      d = fieldValue isPresent ("authorAlias" :: String)
       e = const $ pure False
-      f = fieldValue isPresent "postCreated"
+      f = fieldValue isPresent ("postCreated" :: String)
 
 
-commentFormLucid :: NioForm -> Html ()
+commentFormLucid :: NioForm MNE.MyNioFieldError -> Html ()
 commentFormLucid nf = nioformHtml $ NioFormHtml nf R.CreateCommentOnPost

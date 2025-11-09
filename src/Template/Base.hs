@@ -196,7 +196,7 @@ pagesView sv posts hook = do
 mtHtml :: String -> Html ()
 mtHtml md = do
   let f i = return $ evalState ((runStateT (runExceptT $ unPandocPure i)) def) def
-  let m = readMarkdown (def { readerExtensions = pandocExtensions }) $ cs md :: PandocPure Pandoc
+  let m = readMarkdown (def { readerExtensions = pandocExtensions }) (cs md :: T.Text) :: PandocPure Pandoc
   (a, _) <- f m
   case a of
     (Right x) -> do

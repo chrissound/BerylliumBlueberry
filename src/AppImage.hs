@@ -13,13 +13,12 @@ import Control.Monad.IO.Class
 import Models.Image as Image
 
 import qualified Routes as R
-import Database.PostgreSQL.ORM
-import Database.PostgreSQL.ORM.Model
 import Template.Base
 import Template.Image
 import Forms.Comment
 import Models.Associations
 import Lucid
+import Database.PostgreSQL.Simple
 
 listImage :: AppServer ()
 listImage = do
@@ -40,8 +39,10 @@ listImage = do
 imagesViewPage :: AppAction ()
 imagesViewPage = do
   c <- liftAndCatchIO connection
-  images <- sortByDate <$> (liftAndCatchIO $ findAll c)
+  images <- sortByDate <$> (liftAndCatchIO $ getAllImages c)
   (imageHook, preHook) <- AppCommon.session >>= \case
     Just _ -> return (imageViewExtraAdmin, imagesViewExtraAdmin)
     Nothing -> return (constHtml, return ())
   withSvRenderPage "Gallery" (\sv -> preHook <> imagesView sv images imageHook)
+  where
+    getAllImages conn = query_ conn "SELECT \"imageId\", \"imageTitle\", \"imageEasyId\", \"imageCreated\", \"imageFile\" FROM \"image\"" :: IO [Image]

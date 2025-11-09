@@ -1,8 +1,9 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS -Wno-unused-imports #-}
 
-module AppAdminFile where 
+module AppAdminFile where
 
 import Data.Map as Map
 import qualified Routes as R
@@ -28,7 +29,6 @@ import User
 import Database
 
 import Data.ByteString.Base64 as B64
-import Database.PostgreSQL.ORM.Model
 import Template.Base
 
 import ScottyInput
@@ -41,14 +41,24 @@ import AdminSettings
 import Text.Pretty.Simple
 
 import Data.List.Utils (replace)
+import Database.PostgreSQL.Simple
+import Data.String
+import Data.String.Conversions
+import qualified NeatInterpolation as NI
+import qualified MyNioFieldError as MNE
 
 getFileElseError :: Int -> AppAction File
 getFileElseError x = do
   c <- liftAndCatchIO connection
-  u <- liftAndCatchIO $ findRow c (DBRef $ fromIntegral x)
+  let sql = [NI.text|
+      SELECT "fileId", "fileTitle", "fileEasyId", "fileCreated", "fileFile"
+      FROM "file"
+      WHERE "fileId" = ?
+      |]
+  u <- liftAndCatchIO $ (query c (fromString $ cs sql) (Only x) :: IO [File])
   case u of
-    Just u' -> return u'
-    Nothing -> error "Unable to retrieve record"
+    (u':_) -> return u'
+    [] -> error "Unable to retrieve record"
 
 adminFile :: AppServer ()
 adminFile = do
@@ -86,15 +96,18 @@ createFileAction = do
   scottyInput >>= (form . f') >>= \case
     Right p -> do
       c <- liftAndCatchIO connection
-      (liftAndCatchIO $ trySave c (p)) >>= \case
-        Right _ -> redirect $ cs $ R.renderPublicUrl R.ListFile
-        Left e -> renderScottyHtml $ panel (Just $ cs $ show e) (Forms.File.postForm)
+      let sql = [NI.text|
+          INSERT INTO "file" ("fileId", "fileTitle", "fileEasyId", "fileCreated", "fileFile")
+          VALUES (?, ?, ?, ?, ?)
+          |]
+      _ <- liftAndCatchIO $ execute c (fromString $ cs sql) p
+      redirect $ cs $ R.renderPublicUrl R.ListFile
     Left nferr -> do
       let extra = panel Nothing $ nferr
       liftIO $ pPrint nferr
       renderPage' ("Create File") (Just ("Error submitting comment", NotificationError)) (extra)
 
-form :: FormInput -> AppAction (Either NioForm File)
+form :: FormInput -> AppAction (Either (NioForm MNE.MyNioFieldError) File)
 form = runInputForm' Forms.File.postForm inputFile 
 
 editFileAction :: Int -> AppAction ()
@@ -120,25 +133,27 @@ editFileAction' x = do
     (
       panelWithErrorView "Edit File" Nothing
       $ Forms.File.postEditFormLucid
-      (idInteger $ File.fileId p)
+      (File.fileId p)
       (postForm' p)
     )
 
 deleteFileAction :: Int -> AppAction ()
 deleteFileAction x = do
   c <- liftAndCatchIO connection
-  p <- liftAndCatchIO $ findRow c (DBRef $ fromIntegral x)
-  case p of
-    Just p' -> do
-      d <- liftAndCatchIO $ destroy c (p' :: File)
-      case d of
-        Right _ -> redirect $ cs $ R.renderPublicUrl R.ListFile
-        Left e -> error $ "Validation error:" ++ show e
-    Nothing -> error $ "File not found: " ++ show p
+  let sql = [NI.text|
+      DELETE FROM "file"
+      WHERE "fileId" = ?
+      |]
+  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only x)
+  redirect $ cs $ R.renderPublicUrl R.ListFile
 
 processFile :: File -> (Maybe Text -> Html ()) -> AppAction ()
-processFile p panel = do
+processFile p _panel = do
   c <- liftAndCatchIO connection
-  (liftAndCatchIO $ trySave c (p)) >>= \case
-    Right _ -> redirect $ cs $ R.renderPublicUrl R.ListFile
-    Left e -> renderScottyHtml $ panel (Just $ cs $ show e)
+  let sql = [NI.text|
+      UPDATE "file"
+      SET "fileTitle" = ?, "fileEasyId" = ?, "fileCreated" = ?, "fileFile" = ?
+      WHERE "fileId" = ?
+      |]
+  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (File.fileTitle p, File.fileEasyId p, File.fileCreated p, File.fileFile p, File.fileId p)
+  redirect $ cs $ R.renderPublicUrl R.ListFile

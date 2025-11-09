@@ -9,14 +9,15 @@ import Data.Text (Text, length)
 import Data.Foldable
 import AppTypes
 import NioFormExtra
+import qualified MyNioFieldError as MNE
 
-type Form' a = FormInput -> Either ([FieldEr]) a
-type FieldMaybe a = (Maybe a -> String -> Maybe (FieldEr))
-type AppActionFieldT a = 
-     NioValidateField a
+type Form' a = FormInput -> Either ([FieldEr MNE.MyNioFieldError]) a
+type FieldMaybe a = (Maybe a -> String -> Maybe (FieldEr MNE.MyNioFieldError))
+type AppActionFieldT a =
+     NioValidateField a MNE.MyNioFieldError
   -> NioFormKey
   -> FormInput
-  -> AppActionT (Either FieldEr a)
+  -> AppActionT (Either (FieldEr MNE.MyNioFieldError) a)
 
 myGetFile :: AppActionFieldT FileUpload
 myGetFile = myGetFieldAppAction
@@ -24,36 +25,36 @@ myGetFile = myGetFieldAppAction
 myGetFileImageResize :: AppActionFieldT ImageResizedFileUpload
 myGetFileImageResize = myGetFieldAppAction
 
-myGetFieldAppAction :: (Show a, FieldGetter (AppActionT) a String) => AppActionFieldT a
+myGetFieldAppAction :: (Show a, FieldGetter (AppActionT) a MNE.MyNioFieldError NioFormKey, FieldGetterErrorKey (AppActionT) a NioFormKey) => AppActionFieldT a
 myGetFieldAppAction = fieldValue'
 
-always :: Maybe b -> String -> Maybe FieldEr
+always :: Maybe b -> String -> Maybe (FieldEr MNE.MyNioFieldError)
 always _ _ = Nothing
 
-always' :: Maybe a -> Either NioFieldError a
+always' :: Maybe a -> Either MNE.MyNioFieldError a
 always' v = case v of
                Just x -> Right x
-               Nothing -> Left (NioFieldErrorV "Internal field error")
+               Nothing -> Left (MNE.MyNioFailedValidation "Internal field error")
 
 
-isPresent :: NioValidateField a
+isPresent :: NioValidateField a MNE.MyNioFieldError
 isPresent v = case v of
   Just x  -> Right x
-  Nothing -> Left (NioFieldErrorV $ MyNioFieldErrorEmty "???")
+  Nothing -> Left $ MNE.MyNioFieldErrorNotPresent
 
-isEq :: (b -> Bool) -> Text -> Maybe (Either String b) -> a -> Maybe (a, NioFieldError)
+isEq :: (b -> Bool) -> Text -> Maybe (Either String b) -> a -> Maybe (a, NioFieldError MNE.MyNioFieldError)
 isEq f t x k = case x of
   Just (Right x') -> if f x' then Nothing
-                     else Just (k, NioFieldErrorV $ MyNioIncorrectValue $  t)
-  _       -> Just (k, NioFieldErrorV $ MyNioIncorrectValue "Internal error")
+                     else Just (k, NioFieldErrorV $ MNE.MyNioIncorrectValue (cs t) (cs t))
+  _       -> Just (k, NioFieldErrorV $ MNE.MyNioIncorrectValue "Internal error" "Internal error")
 
 -- isAny :: ([b] -> Bool) -> Text -> Maybe [b] -> a -> Maybe (a, NioFieldError)
 -- isAny f t x k = case x of
   -- Just x' -> if f x' then Nothing else Just (k, NioFieldErrorV $ MyNioIncorrectValue $  t)
   -- _ -> Just (k, NioFieldErrorV $ MyNioIncorrectValue "Not true")
 
-allRules :: [NioValidateField a] -> NioValidateField a
-allRules [] _ = Left (NioFieldErrorV $ MyNioFieldErrorEmty "???")
+allRules :: [NioValidateField a MNE.MyNioFieldError] -> NioValidateField a MNE.MyNioFieldError
+allRules [] _ = Left $ MNE.MyNioFieldErrorNotPresent
 allRules r v = case (sequence $ fmap (\r' -> r' v) r) of
                  Right [] -> error "this should never be possible..."
                  Right (x:_) -> Right x
@@ -74,14 +75,14 @@ liftM7 f m1 m2 m3 m4 m5 m6 m7
        }
 
 
-emptyError :: [NioFieldError]
+emptyError :: [MNE.MyNioFieldError]
 emptyError = []
 
-minLength :: Int -> NioValidateField Text
-minLength _ Nothing = Left (NioFieldErrorV MyNioFieldNotPresent)
-minLength i (Just a) = 
+minLength :: Int -> NioValidateField Text MNE.MyNioFieldError
+minLength _ Nothing = Left $ MNE.MyNioFieldErrorNotPresent
+minLength i (Just a) =
       if ((Data.Text.length a) > i) then Right a
-      else Left (NioFieldErrorV $  MyNioIncorrectValue $ cs $ "Must be longer than " <> show i <> " characters")
+      else Left $ MNE.MyNioIncorrectValue (cs $ "Must be longer than " <> show i <> " characters") (cs $ "Must be longer than " <> show i <> " characters")
 
 -- mydbg :: Show a => String -> a -> a
 -- mydbg s = traceShow

@@ -1,9 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE QuasiQuotes #-}
 module AppComment where
 
-import Database.PostgreSQL.ORM
+import Database.PostgreSQL.Simple
 import Data.Map as Map
 import qualified Routes as R
 import Control.Monad.IO.Class
@@ -24,7 +25,9 @@ import NioForm
 
 import Models.Associations
 -- import qualified Data.Map as Map
-import Text.Read.Extra
+import Text.Read (readMaybe)
+import qualified NeatInterpolation as NI
+import Data.String
 
 appComment :: AppServer ()
 appComment = do
@@ -47,8 +50,21 @@ appComment = do
           Nothing -> error "something went wrong??"
           Just postIdInput -> do
             c <- liftIO $ connection
-            p <- (liftIO $ findRow c $ postIdInput) >>= todoMaybeQuickError
-            comments <- liftIO $ dbSelect c $ approvedPostComment p
+            let sqlPost = [NI.text|
+                SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
+                FROM "post"
+                WHERE "postId" = ?
+                |]
+            postResults <- liftIO (query c (fromString $ cs sqlPost) (Only (postIdInput :: Int)) :: IO [Post])
+            p <- case postResults of
+              (x:_) -> pure x
+              [] -> error "Post not found"
+            let sqlComments = [NI.text|
+                SELECT "commentId", "postId", "commentBody", "authorAlias", "approved", "commentCreated"
+                FROM "comment"
+                WHERE "postId" = ? AND "approved" = true
+                |]
+            comments <- liftIO $ query c (fromString $ cs sqlComments) (Only $ Post.postId p)
             extra <- pure $ do
               panel' "Comments" $ if (Prelude.length comments > 0) then
                 mconcat $ commentView <$> comments
@@ -61,20 +77,36 @@ appComment = do
               (\sv -> postView sv p extra)
 
 processComment :: Comment -> (Maybe Text -> Html ()) -> AppAction ()
-processComment r panel = do
-  liftAndCatchIO connection >>= (liftAndCatchIO . flip trySave r) >>= \case
-    Right _ -> do
-      (p, extra) <- liftIO $ do
-        c <- connection
-        p <- (findRow c $ Comment.postId r) >>= todoMaybeQuickError
-        comments <- dbSelect c $ approvedPostComment p
-        extra <- pure $ do
-          panel' "Comments" $ mconcat $ commentView <$> comments
-          panelWithErrorView "Submit a comment" Nothing $ commentFormLucid $ commentForm' p
-        pure (p, extra)
-      withSvRenderPage'
-        (postTitle p)
-        (Just ("Comment submitted", NotificationInfo))
-        (\sv -> postView sv p extra)
-    Left e -> renderScottyHtml $ panel (Just $ cs $ show e)
+processComment r _panel = do
+  c <- liftAndCatchIO connection
+  let sqlInsert = [NI.text|
+      INSERT INTO "comment" ("commentId", "postId", "commentBody", "authorAlias", "approved", "commentCreated")
+      VALUES (?, ?, ?, ?, ?, ?)
+      |]
+  liftAndCatchIO (execute c (fromString $ cs sqlInsert) r) >>= \_ -> do
+    (p, extra) <- liftIO $ do
+      c' <- connection
+      let sqlPost = [NI.text|
+          SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
+          FROM "post"
+          WHERE "postId" = ?
+          |]
+      postResults <- (query c' (fromString $ cs sqlPost) (Only $ Comment.postId r) :: IO [Post])
+      p <- case postResults of
+        (x:_) -> pure x
+        [] -> error "Post not found"
+      let sqlComments = [NI.text|
+          SELECT "commentId", "postId", "commentBody", "authorAlias", "approved", "commentCreated"
+          FROM "comment"
+          WHERE "postId" = ? AND "approved" = true
+          |]
+      comments <- query c' (fromString $ cs sqlComments) (Only $ Post.postId p)
+      extra <- pure $ do
+        panel' "Comments" $ mconcat $ commentView <$> comments
+        panelWithErrorView "Submit a comment" Nothing $ commentFormLucid $ commentForm' p
+      pure (p, extra)
+    withSvRenderPage'
+      (postTitle p)
+      (Just ("Comment submitted", NotificationInfo))
+      (\sv -> postView sv p extra)
 

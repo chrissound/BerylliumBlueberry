@@ -20,17 +20,18 @@ import Models.Image
 import Models.File
 import AppCommon
 import MyNioFormHtml
+import qualified MyNioFieldError as MNE
 
-postFormLucid :: NioForm -> Html ()
+postFormLucid :: NioForm MNE.MyNioFieldError -> Html ()
 postFormLucid nf = nioformHtml $ NioFormHtml nf (R.AdminCreateImage)
 
-postEditFormLucid :: Int -> NioForm -> Html ()
+postEditFormLucid :: Int -> NioForm MNE.MyNioFieldError -> Html ()
 postEditFormLucid x nf = nioformHtml $ NioFormHtml nf (R.AdminEditImage x )
 
-inputImage :: FormInput -> AppAction (Either [FieldEr] Image)
+inputImage :: FormInput -> AppAction (Either [FieldEr MNE.MyNioFieldError] Image)
 inputImage fi = do
   file' <- inputFile fi
-  x <- fieldValue' isPresent "fileFile" fi :: AppAction (Either FieldEr ImageResizedFileUpload)
+  x <- fieldValue' isPresent ("fileFile" :: String) fi :: AppAction (Either (FieldEr MNE.MyNioFieldError) ImageResizedFileUpload)
   case (file', x) of
     (Right (File a b c d _), Right x') -> pure $ pure $ Image a b c d x'
     _ -> do

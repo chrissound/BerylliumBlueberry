@@ -8,7 +8,6 @@ import Control.Monad
 import qualified Data.Text as T
 import Data.String.Conversions
 import Data.String
-import Database.PostgreSQL.ORM (DBKey)
 import Database.PostgreSQL.Simple.Time
 import Data.Time.Format
 import Text.Pandoc
@@ -50,8 +49,8 @@ data BootAlertType
    | BootAlertInfo
    | BootAlertSuccess
 
-renderParamUrl :: IsString a => (Int -> R.RouteUrl Int R.PublicUrl) -> DBKey -> a
-renderParamUrl r k = fromString $ R.renderPublicUrl $ r $ idInteger $ k
+renderParamUrl :: IsString a => (Int -> R.RouteUrl Int R.PublicUrl) -> Int -> a
+renderParamUrl r k = fromString $ R.renderPublicUrl $ r $ k
 
 buttonConfirmView :: String -> String -> String -> ButtonType -> ButtonSize -> Html ()
 buttonConfirmView l c t bt bs = with a_

@@ -23,10 +23,11 @@ import Forms.Forms2
 import Data.Aeson.Encode.Pretty
 
 import Database.PostgreSQL.Simple
+import qualified MyNioFieldError as MNE
 
 -- data ConfigV = ConfigV String
 
-xxx :: Int -> (Text,Text) -> [NioFieldView]
+xxx :: Int -> (Text,Text) -> [NioFieldView MNE.MyNioFieldError]
 xxx x (f,t) = [
     NioFieldView (cs $ "Redirect from - " ++ show x) (cs $ "siteRedirectFrom" ++ "-" ++ show x)
       emptyError NioFieldInputTextShort (NioFieldValS $ cs f)
@@ -34,7 +35,7 @@ xxx x (f,t) = [
       emptyError NioFieldInputTextShort (NioFieldValS $ cs t)
   ]
 
-postForm :: (Maybe AppConfig) -> NioForm
+postForm :: (Maybe AppConfig) -> NioForm MNE.MyNioFieldError
 postForm conf =
   NioForm $ [
       NioFieldView "Heading"           (cs $ show AppConfigSiteHeading)
@@ -66,10 +67,10 @@ postForm conf =
   ++
   maybe (xxx 0 ("","")) (\ac -> xxx (Data.List.length $ siteRedirect ac) ("","")) conf
 
-postFormLucid :: NioForm -> Html ()
+postFormLucid :: NioForm MNE.MyNioFieldError -> Html ()
 postFormLucid nf = nioformHtml $ NioFormHtml nf (R.AdminSettings)
 
-inputDatabaseConnectionPost :: FormInput -> Either [FieldEr] ConnectInfo
+inputDatabaseConnectionPost :: FormInput -> Either [FieldEr MNE.MyNioFieldError] ConnectInfo
 inputDatabaseConnectionPost fi = do
   ((first $ const allErrors)
     <$>
@@ -89,7 +90,7 @@ inputDatabaseConnectionPost fi = do
       d = fieldValue isPresent (show AppConfigDatabaseConnectionPassword)
       e = fieldValue isPresent (show AppConfigDatabaseConnectionName)
 
-inputPost :: FormInput -> Either ([FieldEr]) AppConfig
+inputPost :: FormInput -> Either ([FieldEr MNE.MyNioFieldError]) AppConfig
 inputPost fi = do
   case inputDatabaseConnectionPost fi of
     Left e' -> Left $ allErrors ++ e'
@@ -108,12 +109,12 @@ inputPost fi = do
         , getFormErrors fi [e]
         , getFormErrors fi [f]
         ]
-      a = fieldValue isPresent (show AppConfigSiteHeading)
-      b = fieldValue isPresent (show AppConfigSiteSubHeading)
-      c = fieldValue isPresent ("siteRedirectFrom", "siteRedirectTo")
-      d = fieldValue isPresent (show AppConfigSiteContactEmail)
-      e = fieldValue isPresent (show AppConfigSiteSideBarHtml)
-      f = fieldValue isPresent (show AppConfigSiteExtraHeadHtml)
+      a = fieldValue isPresent (show AppConfigSiteHeading :: String)
+      b = fieldValue isPresent (show AppConfigSiteSubHeading :: String)
+      c = fieldValue isPresent ("siteRedirectFrom" :: String, "siteRedirectTo" :: String)
+      d = fieldValue isPresent (show AppConfigSiteContactEmail :: String)
+      e = fieldValue isPresent (show AppConfigSiteSideBarHtml :: String)
+      f = fieldValue isPresent (show AppConfigSiteExtraHeadHtml :: String)
 
 -- myff :: (Show a, FieldGetter a, Show b, FieldGetter b)
 --   => NioValidateField a

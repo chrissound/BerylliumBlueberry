@@ -8,7 +8,6 @@ import Control.Monad
 import qualified Data.Text as T
 import Data.String.Conversions
 import Data.String
-import Database.PostgreSQL.ORM (DBKey)
 import Database.PostgreSQL.Simple.Time
 import Data.Time.Format
 import Text.Pandoc

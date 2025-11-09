@@ -13,14 +13,13 @@ import Control.Monad.IO.Class
 import Models.File as File
 
 import qualified Routes as R
-import Database.PostgreSQL.ORM
-import Database.PostgreSQL.ORM.Model
 import Template.Base
 import Template.File
 import Forms.Comment
 import Models.Associations
 import Lucid
 import Network.HTTP.Types
+import Database.PostgreSQL.Simple
 
 listFile :: AppServer ()
 listFile = do
@@ -42,5 +41,7 @@ filesViewPage = do
   (fileHook, preHook) <- AppCommon.session >>= \case
     Just _ -> return (fileViewExtraAdmin, filesViewExtraAdmin)
     Nothing -> return (constHtml, return ())
-  files <- sortByDate <$> (liftAndCatchIO $ findAll c)
+  files <- sortByDate <$> (liftAndCatchIO $ getAllFiles c)
   withSvRenderPage "Files" (\sv -> preHook <> filesView sv files fileHook)
+  where
+    getAllFiles conn = query_ conn "SELECT \"fileId\", \"fileTitle\", \"fileEasyId\", \"fileCreated\", \"fileFile\" FROM \"file\"" :: IO [File]

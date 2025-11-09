@@ -16,8 +16,9 @@ import Forms.Forms2
 import Models.File
 import AppCommon hiding (File, files)
 import MyNioFormHtml
+import qualified MyNioFieldError as MNE
 
-postForm :: NioForm
+postForm :: NioForm MNE.MyNioFieldError
 postForm =
   NioForm [
        NioFieldView "" "fileId" emptyError
@@ -32,11 +33,11 @@ postForm =
          NioFieldInputFile  $ NioFieldValS ""
   ]
 
-postForm' :: File -> NioForm
+postForm' :: File -> NioForm MNE.MyNioFieldError
 postForm' p =
   NioForm [
        NioFieldView "" "fileId" emptyError
-         NioFieldInputHidden (NioFieldValS $ show $ idInteger $ fileId p)
+         NioFieldInputHidden (NioFieldValS $ show $ fileId p)
      , NioFieldView "fileTitle" "fileTitle" emptyError
          NioFieldInputTextShort (NioFieldValS $ cs $ fileTitle p)
      , NioFieldView "fileEasyId" "fileEasyId" emptyError
@@ -47,16 +48,16 @@ postForm' p =
          NioFieldInputTextShort  $ NioFieldValS ""
   ]
 
-postFormLucid :: NioForm -> Html ()
+postFormLucid :: NioForm MNE.MyNioFieldError -> Html ()
 postFormLucid nf = nioformHtml $ NioFormHtml nf (R.AdminCreateFile)
 
-postEditFormLucid :: Int -> NioForm -> Html ()
+postEditFormLucid :: Int -> NioForm MNE.MyNioFieldError -> Html ()
 postEditFormLucid x nf = nioformHtml $ NioFormHtml nf (R.AdminEditFile x )
 
 
-inputFile :: FormInput -> AppAction (Either [FieldEr] File)
+inputFile :: FormInput -> AppAction (Either [FieldEr MNE.MyNioFieldError] File)
 inputFile fi = do
-  allErrors' <- mconcat <$> sequence (allErrors :: [AppActionT [FieldEr]])
+  allErrors' <- mconcat <$> sequence (allErrors :: [AppActionT [FieldEr MNE.MyNioFieldError]])
   (first $ const allErrors') <$> ((liftM5 . liftM5) File <$> a <*> b <*> c <*> d <*> e) fi
   where
       allErrors = [
@@ -65,11 +66,11 @@ inputFile fi = do
         , getFormErrorsM fi [c]
         , getFormErrorsM fi [d]
         , getFormErrorsM fi [e]
-        ] :: [AppActionT [FieldEr]]
-      a = pure <$> fieldValue isPresent "fileId"
-      b = pure <$> fieldValue isPresent "fileTitle"
-      c = pure <$> fieldValue isPresent "fileEasyId"
-      d = pure <$> fieldValue isPresent "fileCreated"
-      e = fieldValue' isPresent "fileFile"
+        ] :: [AppActionT [FieldEr MNE.MyNioFieldError]]
+      a = pure <$> fieldValue isPresent ("fileId" :: String)
+      b = pure <$> fieldValue isPresent ("fileTitle" :: String)
+      c = pure <$> fieldValue isPresent ("fileEasyId" :: String)
+      d = pure <$> fieldValue isPresent ("fileCreated" :: String)
+      e = fieldValue' isPresent ("fileFile" :: String)
 
 

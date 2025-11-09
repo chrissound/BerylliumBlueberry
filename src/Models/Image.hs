@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS -Wno-unused-imports #-}
 
 module Models.Image where
 
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.ORM
+import Database.PostgreSQL.Simple.FromRow
+import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.Time
 import Data.Char
 import Data.Text
@@ -19,17 +21,19 @@ import AppTypeDb
 import Data.List
 import Data.Function
 import Models.File
+import qualified NeatInterpolation as NI
 
 
 data Image = Image {
-    imageId :: DBKey
+    imageId :: Int
   , imageTitle :: Text
   , imageEasyId :: Text
   , imageCreated :: UTCTimestamp
   , imageFile :: ImageResizedFileUpload
   } deriving (Generic, Show)
 
-instance Model Image
+instance FromRow Image
+instance ToRow Image
 
 imageToFile :: Image -> Models.File.File
 imageToFile (Image a b c d (ImageResizedFileUpload e)) = File a b c d (FileUpload e)
@@ -42,7 +46,12 @@ filterEid s = case (Prelude.all (== True) $ Prelude.map (\x -> or [isAlphaNum x,
 
 getImageByEasyId :: Text -> Connection -> IO (Maybe Image)
 getImageByEasyId eid c = do
-    z <- dbSelect c $ (addWhere (fromString $ cs $ sqlWhereEquals "imageEasyId") (Only eid) modelDBSelect )
+    let sql = [NI.text|
+        SELECT "imageId", "imageTitle", "imageEasyId", "imageCreated", "imageFile"
+        FROM "image"
+        WHERE "imageEasyId" = ?
+        |]
+    z <- query c (fromString $ cs sql) (Only eid) :: IO [Image]
     case z of
       (r:_) -> return $ Just r
       (_) -> return Nothing

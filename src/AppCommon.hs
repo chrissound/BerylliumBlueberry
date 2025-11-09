@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE QuasiQuotes #-}
 module AppCommon (
     module AppCommon
   , module AppTypes
@@ -27,6 +28,7 @@ import Data.String
 import Web.Scotty.Cookie
 import Data.String.Conversions
 import Web.Scotty.Trans
+import qualified NeatInterpolation as NI
 -- import Network.Wai.Parse
 
 -- import Forms.Post
@@ -35,7 +37,6 @@ import AppTypes
 import Common
 
 import Database
-import Database.PostgreSQL.ORM
 import Database.PostgreSQL.Simple
 
 import Models.User as M
@@ -92,7 +93,12 @@ getLoggedInUser = do
     Just s' -> do
       username <- return $ MS.lookup "username" (sessionV s')
       c <- liftAndCatchIO connection
-      z <- liftAndCatchIO $ dbSelect c $ (addWhere (fromString $ cs $ sqlWhereEquals "userName") (Only username) modelDBSelect )
+      let sql = [NI.text|
+          SELECT "userId", "userName", "userEmail", "userPassword", "userVerified"
+          FROM "user"
+          WHERE "userName" = ?
+          |]
+      z <- liftAndCatchIO $ query c (fromString $ cs sql) (Only username) :: AppAction [M.User]
       case z of
         (r:_) -> return $ Just r
         (_) -> return Nothing

@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS -Wno-unused-imports #-}
 
 module Models.File where
 
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.ORM
+import Database.PostgreSQL.Simple.FromRow
+import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.Time
 import Data.Char
 import Data.Text
@@ -18,17 +20,19 @@ import System.Directory
 import AppTypeDb
 import Data.List
 import Data.Function
+import qualified NeatInterpolation as NI
 
 
 data File = File {
-    fileId :: DBKey
+    fileId :: Int
   , fileTitle :: Text
   , fileEasyId :: Text
   , fileCreated :: UTCTimestamp
   , fileFile :: FileUpload
   } deriving (Generic, Show)
 
-instance Model File
+instance FromRow File
+instance ToRow File
 
 filterEid :: Text -> Maybe Text
 filterEid s = case (Prelude.all (== True) $ Prelude.map (\x -> or [isAlphaNum x, x == '-']) $ cs s) of
@@ -38,7 +42,12 @@ filterEid s = case (Prelude.all (== True) $ Prelude.map (\x -> or [isAlphaNum x,
 
 getFileByEasyId :: Text -> Connection -> IO (Maybe File)
 getFileByEasyId eid c = do
-    z <- dbSelect c $ (addWhere (fromString $ cs $ sqlWhereEquals "fileEasyId") (Only eid) modelDBSelect )
+    let sql = [NI.text|
+        SELECT "fileId", "fileTitle", "fileEasyId", "fileCreated", "fileFile"
+        FROM "file"
+        WHERE "fileEasyId" = ?
+        |]
+    z <- query c (fromString $ cs sql) (Only eid) :: IO [File]
     case z of
       (r:_) -> return $ Just r
       (_) -> return Nothing

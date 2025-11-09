@@ -8,22 +8,24 @@ import NioFormTypes
 import Routes as R
 import Common
 import Control.Monad
+import Data.Maybe (fromMaybe)
 import Lucid
 import Forms.Forms2
 import MyNioFormHtml
 import Models.Post as MdlP
+import qualified MyNioFieldError as MNE
 
-postForm :: NioForm
+postForm :: NioForm MNE.MyNioFieldError
 postForm = postForm'' Nothing
 
-postForm' :: Post -> NioForm
+postForm' :: Post -> NioForm MNE.MyNioFieldError
 postForm' p = postForm'' $ Just p
 
-postForm'' :: Maybe Post -> NioForm 
+postForm'' :: Maybe Post -> NioForm MNE.MyNioFieldError 
 postForm'' mp =
   NioForm [
        NioFieldView "" "postId" emptyError
-         NioFieldInputHidden $ maybe (NioFieldValS "") (NioFieldValS . show . idInteger . postId) mp
+         NioFieldInputHidden $ maybe (NioFieldValS "") (NioFieldValS . show . postId) mp
      , NioFieldView "postTitle" "postTitle" emptyError
          NioFieldInputTextShort $ maybe (NioFieldValS "") (NioFieldValS . cs . postTitle) mp
      , NioFieldView "postEasyId" "postEasyId" emptyError
@@ -40,38 +42,37 @@ postForm'' mp =
 
   ]
 
-inputPost :: FormInput -> Either ([FieldEr]) Post
+inputPost :: FormInput -> Either ([FieldEr MNE.MyNioFieldError]) Post
 inputPost fi = do
-  (((liftM6 Post) <$> a <*> b <*> c <*> d <*> e <*> f) >>= \case
+  (((liftM6 Post) <$> (fmap (fromMaybe 0) <$> a) <*> b <*> c <*> d <*> e <*> f) >>= \case
     Right x' -> pure $ pure x'
     Left _ -> (\_ -> do
                   Left allErrors
       )) fi
   where
       allErrors = mconcat [
-                       getFormErrors fi [a]
-                     , getFormErrors fi [b]
+                       getFormErrors fi [b]
                      , getFormErrors fi [c]
                      , getFormErrors fi [d]
                      , getFormErrors fi [e]
                      , getFormErrors fi [f]
                      ]
-      a = fieldValue isPresent "postId"
-      b = fieldValue isPresent "postTitle"
+      a = fieldValue always' ("postId" :: String)
+      b = fieldValue isPresent ("postTitle" :: String)
       c = fieldValue (allRules [
                          minLength 3
-                         ]) "postBody"
-      d = fieldValue isPresent "postCreated"
+                         ]) ("postBody" :: String)
+      d = fieldValue isPresent ("postCreated" :: String)
       e = fieldValue (allRules [
                          minLength 3
-                         ]) "postEasyId"
-      f = fieldValue always' "postTags"
+                         ]) ("postEasyId" :: String)
+      f = fieldValue always' ("postTags" :: String)
 
-postFormLucid :: NioForm -> Html ()
+postFormLucid :: NioForm MNE.MyNioFieldError -> Html ()
 postFormLucid nf = nioformHtml $ NioFormHtml nf (R.AdminCreatePost)
 
-postEditFormLucid :: Int ->  NioForm -> Html ()
+postEditFormLucid :: Int ->  NioForm MNE.MyNioFieldError -> Html ()
 postEditFormLucid x nf = nioformHtml $ NioFormHtml nf (R.AdminEditPost x)
 
-pageFormLucid :: NioForm -> Html ()
+pageFormLucid :: NioForm MNE.MyNioFieldError -> Html ()
 pageFormLucid nf = nioformHtml $ NioFormHtml nf (R.AdminCreateSinglePage)

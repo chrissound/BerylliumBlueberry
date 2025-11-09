@@ -1,8 +1,9 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS -Wno-unused-imports #-}
 
-module AppAdminGalleryImage where 
+module AppAdminGalleryImage where
 
 import Data.Map as Map
 import qualified Routes as R
@@ -30,7 +31,6 @@ import User
 import Database
 
 import Data.ByteString.Base64 as B64
-import Database.PostgreSQL.ORM.Model
 import Template.Base
 
 import ScottyInput
@@ -43,14 +43,24 @@ import AdminSettings
 import Text.Pretty.Simple
 
 import Data.List.Utils (replace)
+import Database.PostgreSQL.Simple
+import Data.String
+import Data.String.Conversions
+import qualified NeatInterpolation as NI
+import qualified MyNioFieldError as MNE
 
 getImageElseError :: Int -> AppAction Image
 getImageElseError x = do
   c <- liftAndCatchIO connection
-  u <- liftAndCatchIO $ findRow c (DBRef $ fromIntegral x)
+  let sql = [NI.text|
+      SELECT "imageId", "imageTitle", "imageEasyId", "imageCreated", "thumbImageFile"
+      FROM "image"
+      WHERE "imageId" = ?
+      |]
+  u <- liftAndCatchIO $ (query c (fromString $ cs sql) (Only x) :: IO [Image])
   case u of
-    Just u' -> return u'
-    Nothing -> error "Unable to retrieve record"
+    (u':_) -> return u'
+    [] -> error "Unable to retrieve record"
 
 adminGallery :: AppServer ()
 adminGallery = do
@@ -88,16 +98,19 @@ createImageAction = do
   scottyInput >>= (form . f') >>= \case
     Right p -> do
       c <- liftAndCatchIO connection
-      (liftAndCatchIO $ trySave c p) >>= \case
-        Right _ -> redirect $ cs $ R.renderPublicUrl R.ListImage
-        Left e -> renderScottyHtml $ panel (Just $ cs $ show e) (Forms.File.postForm)
+      let sql = [NI.text|
+          INSERT INTO "image" ("imageId", "imageTitle", "imageEasyId", "imageCreated", "thumbImageFile")
+          VALUES (?, ?, ?, ?, ?)
+          |]
+      _ <- liftAndCatchIO $ execute c (fromString $ cs sql) p
+      redirect $ cs $ R.renderPublicUrl R.ListImage
     Left nferr -> do
       let extra = panel Nothing $ nferr
       liftIO $ pPrint nferr
       _ <- error "hi"
       renderPage' ("Create Image") (Just ("Error submitting comment", NotificationError)) (extra)
 
-form :: FormInput -> AppAction (Either NioForm Image)
+form :: FormInput -> AppAction (Either (NioForm MNE.MyNioFieldError) Image)
 form = runInputForm' Forms.File.postForm inputImage 
 
 editImageAction :: Int -> AppAction ()
@@ -123,25 +136,27 @@ editImageAction' x = do
     (
       panelWithErrorView "Edit Image" Nothing
       $ Forms.Image.postEditFormLucid
-      (idInteger $ Image.imageId p)
+      (Image.imageId p)
       (postForm' $ imageToFile p)
     )
 
 deleteImageAction :: Int -> AppAction ()
 deleteImageAction x = do
   c <- liftAndCatchIO connection
-  p <- liftAndCatchIO $ findRow c (DBRef $ fromIntegral x)
-  case p of
-    Just p' -> do
-      d <- liftAndCatchIO $ destroy c (p' :: Image)
-      case d of
-        Right _ -> redirect $ cs $ R.renderPublicUrl R.ListImage
-        Left e -> error $ "Validation error:" ++ show e
-    Nothing -> error $ "Image not found: " ++ show p
+  let sql = [NI.text|
+      DELETE FROM "image"
+      WHERE "imageId" = ?
+      |]
+  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only x)
+  redirect $ cs $ R.renderPublicUrl R.ListImage
 
 processImage :: Image -> (Maybe Text -> Html ()) -> AppAction ()
-processImage p panel = do
+processImage p _panel = do
   c <- liftAndCatchIO connection
-  (liftAndCatchIO $ trySave c (p)) >>= \case
-    Right _ -> redirect $ cs $ R.renderPublicUrl R.ListImage
-    Left e -> renderScottyHtml $ panel (Just $ cs $ show e)
+  let sql = [NI.text|
+      UPDATE "image"
+      SET "imageTitle" = ?, "imageEasyId" = ?, "imageCreated" = ?, "thumbImageFile" = ?
+      WHERE "imageId" = ?
+      |]
+  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Image.imageTitle p, Image.imageEasyId p, Image.imageCreated p, Image.imageFile p, Image.imageId p)
+  redirect $ cs $ R.renderPublicUrl R.ListImage

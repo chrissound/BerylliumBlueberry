@@ -17,7 +17,8 @@ import AppConfig
 import NioFormHtml
 import NioFormTypes
 import NioForm
-import Database.PostgreSQL.ORM
+import Database.PostgreSQL.Simple
+import qualified MyNioFieldError as MNE
 
 renderPage :: Text -> Html () -> AppAction ()
 renderPage t h = siteViewDataDef t >>= flip renderScottyHtmlSv h
@@ -37,9 +38,9 @@ renderScottyHtmlSv :: (ScottyError e, MonadIO m) => SiteView -> Html () -> Actio
 renderScottyHtmlSv sv = html . cs . renderText . (siteView sv)
 
 formAction ::
-  NioForm
-  -> (FormInput -> Either [FieldEr] t)
-  -> (NioForm -> Html ())
+  NioForm MNE.MyNioFieldError
+  -> (FormInput -> Either [FieldEr MNE.MyNioFieldError] t)
+  -> (NioForm MNE.MyNioFieldError -> Html ())
   -> Text
   -> Text
   -> (t -> AppAction ())
@@ -67,7 +68,9 @@ svd t n = do
       (AppConfig.siteExtraHeadHtml appConfig)
       []
       []
-    ) <$> getLoggedInUser <*> liftIO getPagePosts <*> liftIO getAppConfig <*> (liftAndCatchIO $ findAll c)
+    ) <$> getLoggedInUser <*> liftIO getPagePosts <*> liftIO getAppConfig <*> (liftAndCatchIO $ getAllImages c)
+  where
+    getAllImages conn = query_ conn "SELECT \"imageId\", \"imageTitle\", \"imageEasyId\", \"imageCreated\", \"imageFile\" FROM \"image\"" :: IO [Image]
 
 siteViewDataDef :: Text -> AppAction SiteView
 siteViewDataDef t = svd t Nothing

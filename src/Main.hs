@@ -3,9 +3,9 @@
 
 module Main where
 
-import Database.PostgreSQL.ORM
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Migrations
+-- import Database.PostgreSQL.ORM
+-- import Database.PostgreSQL.Migrations
 -- import Database.PostgreSQL.ORM.Model
 
 import Control.Exception
@@ -25,7 +25,7 @@ import System.Environment
 import System.Exit
 import Data.Binary
 import Network.Wai.Middleware.RequestLogger
-import qualified Data.Aeson 
+import qualified Data.Aeson
 
 -- Local package
 import Server
@@ -33,18 +33,26 @@ import App
 import Database
 import AppConfig
 
-commentPostRefinfo :: DBRefInfo Comment Post
-commentPostRefinfo = defaultDBRefInfo
+-- Removed ORM-specific code: commentPostRefinfo, migrateAll
+-- Migrations should now be handled using a different migration tool or raw SQL scripts
+-- commentPostRefinfo :: DBRefInfo Comment Post
+-- commentPostRefinfo = defaultDBRefInfo
 
 migrateAll :: IO ()
 migrateAll = do
-  c <- connection
-  up c
-  up2 c
-  up3 c
-  up4 c
-  up5 c
-  up6 c
+  putStrLn "Migrations have been disabled - please use a migration tool like dbmate or run SQL scripts directly"
+  pure ()
+
+{- Original migration code commented out - replace with proper migration tool
+-- up c
+-- up2 c
+-- up3 c
+-- up4 c
+-- up5 c
+-- up6 c
+-}
+
+{- All migration functions commented out - use a proper migration tool instead
 
 up :: Connection -> IO ()
 up c = do
@@ -87,7 +95,6 @@ up3 c = do
       , column "postType" "integer NOT NULL"
       ]
     ) c
-  -- x <- executeMany c "INSERT into postType VALUES (bbbbb)" $ 
   z <- dbSelect c (modelDBSelect :: DBSelect Post)
   mapM_ (\p -> do
             s <- trySave c (PostType (NullKey) (mkDBRef p) (fromEnum $ PostTypeBlog))
@@ -95,10 +102,6 @@ up3 c = do
               Right _ -> pure ()
               Left x -> error $ show x
            ) z
-  -- x <- executeMany c
-  --   "insert into \"postType\" (\"postId\", \"postType\") values (?,?)"
-  --   [(1 :: Int,1 :: Int)]
-  -- print x
 
 up4 :: Connection -> IO ()
 up4 c = do
@@ -149,6 +152,8 @@ dropTableCascade x c = do
   print z
   execute_ c (fromString $ z)
 
+-}
+
 data ManyToOne a b = ManyToOne a [b]
 
 -- | Run @action@ every @period@ seconds.
@@ -159,7 +164,8 @@ runPeriodicallyBigDrift period action = forever $ do
 
 migrationsUp :: IO ()
 migrationsUp = do
-  connection >>= up
+  putStrLn "Migrations have been disabled - please use a migration tool like dbmate or run SQL scripts directly"
+  pure ()
 
 appState :: String
 appState = "data/appstate.bin"
@@ -179,14 +185,14 @@ main = do
   case args of
     [] -> pure ()
     ("--migrationsUp":[]) -> migrationsUp >> exitWith ExitSuccess
-    ("--migrationsUp":"2":[]) -> connection >>= up2 >> exitWith ExitSuccess
-    ("--migrationsUp":"3":[]) -> connection >>= up3 >> exitWith ExitSuccess
-    ("--migrationsUp":"4":[]) -> connection >>= up4 >> exitWith ExitSuccess
-    ("--migrationsUp":"5":[]) -> connection >>= up5 >> exitWith ExitSuccess
-    ("--migrationsUp":"6":[]) -> connection >>= up6 >> exitWith ExitSuccess
-    ("--migrationsUp":"7":[]) -> connection >>= up7 >> exitWith ExitSuccess
+    ("--migrationsUp":"2":[]) -> migrationsUp >> exitWith ExitSuccess
+    ("--migrationsUp":"3":[]) -> migrationsUp >> exitWith ExitSuccess
+    ("--migrationsUp":"4":[]) -> migrationsUp >> exitWith ExitSuccess
+    ("--migrationsUp":"5":[]) -> migrationsUp >> exitWith ExitSuccess
+    ("--migrationsUp":"6":[]) -> migrationsUp >> exitWith ExitSuccess
+    ("--migrationsUp":"7":[]) -> migrationsUp >> exitWith ExitSuccess
     ("--migrate":[]) -> migrateAll >> exitWith ExitSuccess
-    ("--dropAll":[]) -> dropAll >> exitWith ExitSuccess
+    ("--dropAll":[]) -> putStrLn "dropAll has been disabled - please use a migration tool" >> exitWith ExitSuccess
     ("--init":[]) -> initConfig
     (_) -> print "Possibly unknown args"
   let port = case args of

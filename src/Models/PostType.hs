@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Models.PostType where
 
 import Models.Post
-import Database.PostgreSQL.ORM
 import Database.PostgreSQL.Simple
+import Database.PostgreSQL.Simple.FromRow
+import Database.PostgreSQL.Simple.ToRow
 import GHC.Generics
 import Data.Maybe
 import Database
@@ -13,14 +15,18 @@ import DatastoreHelper
 import Common
 import Data.List
 import Data.Function
+import qualified NeatInterpolation as NI
+import Data.String.Conversions
+import Data.String
 
 data PostType = PostType {
-    postTypeId :: DBKey
-  , postId :: DBRef Post
+    postTypeId :: Int
+  , postId :: Int  -- Foreign key to Post
   , postType :: Int
   } deriving (Generic, Show)
 
-instance Model PostType
+instance FromRow PostType
+instance ToRow PostType
 
 data PostTypeEnum = PostTypeBlog | PostTypePage deriving (Enum, Show, Eq)
 
@@ -32,36 +38,47 @@ data PagePost = PagePost {
 getPagePosts :: IO [PagePost]
 getPagePosts = do
   c <- connection
-  postTypes <- (dbSelect c $ addWhere "\"postType\" = ?" (Only $ fromEnum PostTypePage) (modelDBSelect :: DBSelect PostType))
-  posts <- (dbSelect c (modelDBSelect :: DBSelect Post))
+  let sql = [NI.text|
+      SELECT "postTypeId", "postId", "postType"
+      FROM "postType"
+      WHERE "postType" = ?
+      |]
+  postTypes <- query c (fromString $ cs sql) (Only $ fromEnum PostTypePage) :: IO [PostType]
+
+  let sql2 = [NI.text|
+      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
+      FROM "post"
+      |]
+  posts <- query_ c (fromString $ cs sql2) :: IO [Post]
 
   pure $ sortByDate $ catMaybes $ combineByIntIndex
             PagePost
-            (idIntegerRef . Models.PostType.postId)
-            (idInteger . Models.Post.postId)
+            (Models.PostType.postId)
+            (Models.Post.postId)
             postTypes
             posts
 
 getPagePosts' :: PostTypeEnum -> IO [PagePost]
 getPagePosts' x = do
   c <- connection
-  postTypes <-
-    (
-      dbSelect c
-      $ addWhere "\"postType\" = ?" (Only $ fromEnum x)
-        (modelDBSelect :: DBSelect PostType)
-    )
-  posts <- dbSelect c
-    ((modelDBSelect :: DBSelect Post)
-      {
-        selOrderBy = "ORDER BY \"postCreated\" desc" 
-      }
-    )
+  let sql = [NI.text|
+      SELECT "postTypeId", "postId", "postType"
+      FROM "postType"
+      WHERE "postType" = ?
+      |]
+  postTypes <- query c (fromString $ cs sql) (Only $ fromEnum x) :: IO [PostType]
+
+  let sql2 = [NI.text|
+      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
+      FROM "post"
+      ORDER BY "postCreated" DESC
+      |]
+  posts <- query_ c (fromString $ cs sql2) :: IO [Post]
 
   pure $ sortByDate $ catMaybes $ combineByIntIndex
             PagePost
-            (idIntegerRef . Models.PostType.postId)
-            (idInteger . Models.Post.postId)
+            (Models.PostType.postId)
+            (Models.Post.postId)
             postTypes
             posts
 

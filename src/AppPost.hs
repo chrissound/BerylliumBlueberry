@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module AppPost where
 
@@ -11,8 +12,6 @@ import Models.Post as Post
 import Models.PostType
 
 import qualified Routes as R
-import Database.PostgreSQL.ORM
-import Database.PostgreSQL.ORM.Model
 import Template.Base
 import Template.Post
 import Forms.Comment
@@ -21,14 +20,23 @@ import Lucid
 import Data.Text (Text)
 import Data.List
 import Network.HTTP.Types
+import qualified NeatInterpolation as NI
+import Data.String
+import Data.String.Conversions
+import Database.PostgreSQL.Simple (query, Only(..))
 
 getPostElseError :: Int -> AppAction Post.Post
 getPostElseError x = do
   c <- liftAndCatchIO connection
-  u <- liftAndCatchIO $ findRow c (DBRef $ fromIntegral x)
+  let sql = [NI.text|
+      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
+      FROM "post"
+      WHERE "postId" = ?
+      |]
+  u <- liftAndCatchIO $ query c (fromString $ cs sql) (Only x) :: AppAction [Post.Post]
   case u of
-    Just u' -> return u'
-    Nothing -> error "Unable to retrieve record"
+    (u':_) -> return u'
+    _ -> error "Unable to retrieve record"
 
 
 postsViewPage :: AppAction ()
@@ -69,7 +77,7 @@ listPost = do
         >>=
           maybe404
             (\p -> do
-              comments <- liftIO $ dbSelect c $ approvedPostComment p
+              comments <- liftIO $ getApprovedPostComments c p
               extra <- pure $ do
                 panel' "Comments" $ if (Prelude.length comments > 0) then
                   mconcat $ commentView <$> comments

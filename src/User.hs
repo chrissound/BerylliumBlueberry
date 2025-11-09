@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE QuasiQuotes #-}
 module User (
               UserId
             , UserName (..)
@@ -18,13 +19,13 @@ module User (
             ) where
 
 -- External package
-import Database.PostgreSQL.ORM
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
 import Data.Text
 import Data.Time.Clock
 import Data.String
 import Data.String.Conversions
+import qualified NeatInterpolation as NI
 
 import Models.User as M
 import Common
@@ -78,8 +79,13 @@ class UserSession sState sRecord | sState -> sRecord where
   modifySessionRecord :: sState -> SessionId -> (Maybe sRecord -> sRecord) -> sState
 
 authUser :: Connection -> UserName -> UserPassword -> IO Bool
-authUser c u p =
-  (dbSelect c $ addWhere (fromString $ cs ( sqlWhereEquals "userName" <> " AND " <> sqlWhereEquals "userPassword" :: Text)) (u, p) (modelDBSelect :: DBSelect M.User)) >>= \case
+authUser c u p = do
+  let sql = [NI.text|
+      SELECT "userId", "userName", "userEmail", "userPassword", "userVerified"
+      FROM "user"
+      WHERE "userName" = ? AND "userPassword" = ?
+      |]
+  (query c (fromString $ cs sql) (u, p) :: IO [M.User]) >>= \case
     (_:_) -> return True
     _ -> return False
 

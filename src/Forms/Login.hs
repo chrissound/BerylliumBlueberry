@@ -14,6 +14,7 @@ import NioForm
 import NioFormTypes
 import Blog
 import MyNioFormHtml
+import qualified MyNioFieldError as MNE
 
 data LoginRequest
    = LoginRequest
@@ -21,8 +22,8 @@ data LoginRequest
    , lr_password :: T.Text
    } deriving (Show)
 
-loginForm' :: NioForm
-loginForm' = 
+loginForm' :: NioForm MNE.MyNioFieldError
+loginForm' =
   NioForm [
        NioFieldView "Username" "user" emptyError
          NioFieldInputTextShort $ NioFieldValS ""
@@ -39,13 +40,13 @@ inputLogin' = do
       , getFormErrors z [b]
       ])
   where
-    a = fieldValue isPresent "user"
-    b = fieldValue isPresent "password"
+    a = fieldValue isPresent ("user" :: String)
+    b = fieldValue isPresent ("password" :: String)
 
 -- loginForm :: Monad m => Form (Html ()) m LoginRequest
 -- loginForm =
 --     LoginRequest <$> "user" .: text Nothing
 --                  <*> "password" .: text Nothing
 
-loginFormLucid' :: NioForm -> Html ()
+loginFormLucid' :: NioForm MNE.MyNioFieldError -> Html ()
 loginFormLucid' nf = nioformHtml $ NioFormHtml nf (R.Login)

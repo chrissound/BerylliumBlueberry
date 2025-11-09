@@ -1,8 +1,9 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS -Wno-unused-imports #-}
 {-# OPTIONS -Wno-unused-do-bind #-}
-module AppAdmin where 
+module AppAdmin where
 
 import Data.Map as Map
 import qualified Routes as R
@@ -32,7 +33,6 @@ import User
 import Database
 
 import Data.ByteString.Base64 as B64
-import Database.PostgreSQL.ORM.Model
 import Template.Base
 
 import ScottyInput
@@ -45,6 +45,11 @@ import AdminSettings
 import AppAdminGalleryImage
 import AppAdminFile
 import AppPostTypeI
+
+import Database.PostgreSQL.Simple
+import Data.String
+import Data.String.Conversions
+import qualified NeatInterpolation as NI
 
 adminServer :: AppServer ()
 adminServer = do
@@ -140,16 +145,22 @@ createPostAction = do
   case runInputForm Forms.Post2.postForm inputPost $ toList formInput of
     Right p -> do
       c <- liftAndCatchIO connection
-      (liftAndCatchIO $ trySave c (preProcessPost p)) >>= \case
-        Right x ->
-          (
-              liftAndCatchIO
-              $ trySave c
-              $ PostType NullKey (DBRef $ fromIntegral . idInteger $ Post.postId x) (fromEnum PostTypeBlog)
-          ) >>= \case
-            Right _ -> redirect $ cs $ R.renderPublicUrl R.ListPost
-            Left e ->  renderScottyHtml $ panel (Just $ cs $ show e) (Forms.Post2.postForm)
-        Left e -> renderScottyHtml $ panel (Just $ cs $ show e) (Forms.Post2.postForm)
+      let sqlPost = [NI.text|
+          INSERT INTO "post" ("postTitle", "postBody", "postCreated", "postEasyId", "postTags")
+          VALUES (?, ?, ?, ?, ?)
+          RETURNING "postId"
+          |]
+      let pp = preProcessPost p
+      postIdResults <- liftAndCatchIO $ (query c (fromString $ cs sqlPost) (postTitle pp, postBody pp, postCreated pp, postEasyId pp, postTags pp) :: IO [Only Int])
+      case postIdResults of
+        (Only insertedPostId:_) -> do
+          let sqlPostType = [NI.text|
+              INSERT INTO "postType" ("postTypeId", "postId", "postType")
+              VALUES (0, ?, ?)
+              |]
+          _ <- liftAndCatchIO $ execute c (fromString $ cs sqlPostType) (insertedPostId, fromEnum PostTypeBlog :: Int)
+          redirect $ cs $ R.renderPublicUrl R.ListPost
+        [] -> renderScottyHtml $ panel (Just "Failed to insert post") (Forms.Post2.postForm)
     Left nferr -> do
       let extra = panel Nothing $ nferr
       renderPage' ("Create Post") (Just ("Error submitting comment", NotificationError)) (extra)
@@ -173,27 +184,30 @@ editPostAction' x = do
   let t = "Edit Post"
   p <- getPostElseError x
   sv <- select2sv t Nothing
-  let c = Forms.Post2.postEditFormLucid (idInteger $ Post.postId p) (postForm' p)
+  let c = Forms.Post2.postEditFormLucid (Post.postId p) (postForm' p)
   renderScottyHtmlSv sv (panelWithErrorView t Nothing c)
 
 deletePostAction :: Int -> AppAction ()
 deletePostAction x = do
   c <- liftAndCatchIO connection
-  p <- liftAndCatchIO $ findRow c (DBRef $ fromIntegral x)
-  case p of
-    Just p' -> do
-      d <- liftAndCatchIO $ destroy c (p' :: Post)
-      case d of
-        Right _ -> redirect $ cs $ R.renderPublicUrl R.ListPost
-        Left e -> error $ "Validation error:" ++ show e
-    Nothing -> error $ "Post not found: " ++ show p
+  let sql = [NI.text|
+      DELETE FROM "post"
+      WHERE "postId" = ?
+      |]
+  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only x)
+  redirect $ cs $ R.renderPublicUrl R.ListPost
 
 processPost :: Post -> (Maybe Text -> Html ()) -> AppAction ()
-processPost p panel = do
+processPost p _panel = do
   c <- liftAndCatchIO connection
-  (liftAndCatchIO $ trySave c (preProcessPost p)) >>= \case
-    Right _ -> redirect $ cs $ R.renderPublicUrl R.ListPost
-    Left e -> renderScottyHtml $ panel (Just $ cs $ show e)
+  let sql = [NI.text|
+      UPDATE "post"
+      SET "postTitle" = ?, "postBody" = ?, "postCreated" = ?, "postEasyId" = ?, "postTags" = ?
+      WHERE "postId" = ?
+      |]
+  let pp = preProcessPost p
+  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Post.postTitle pp, Post.postBody pp, Post.postCreated pp, Post.postEasyId pp, Post.postTags pp, Post.postId pp)
+  redirect $ cs $ R.renderPublicUrl R.ListPost
 
 preProcessPost :: Post -> Post 
 preProcessPost p = p { postEasyId = Data.Text.map (\x -> bool '-' x (x /= ' ')) $ postEasyId p}

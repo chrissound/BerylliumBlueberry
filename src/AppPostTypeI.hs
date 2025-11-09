@@ -1,4 +1,5 @@
 {-# OPTIONS -Wno-unused-imports #-}
+{-# LANGUAGE QuasiQuotes #-}
 module AppPostTypeI where
 
 import Data.Map as Map
@@ -30,7 +31,6 @@ import User
 import Database
 
 import Data.ByteString.Base64 as B64
-import Database.PostgreSQL.ORM.Model
 import Template.Base
 
 import ScottyInput
@@ -41,16 +41,20 @@ import AppPost
 import AdminSettings
 
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.ORM
 import Data.String
+import Data.String.Conversions
+import qualified NeatInterpolation as NI
 
 
 getPostTypeWherePostId :: Int -> AppAction PostType
 getPostTypeWherePostId x = do
   c <- liftAndCatchIO connection
-  p <- liftAndCatchIO $
-    dbSelect c $
-      (addWhere (fromString $ cs $ sqlWhereEquals "postId") (Only x) modelDBSelect )
+  let sql = [NI.text|
+      SELECT "postTypeId", "postId", "postType"
+      FROM "postType"
+      WHERE "postId" = ?
+      |]
+  p <- liftAndCatchIO $ (query c (fromString $ cs sql) (Only x) :: IO [PostType])
   case p of
     [p'] -> pure p'
     _ -> error $ "PostType not found: " ++ show p
@@ -58,18 +62,25 @@ getPostTypeWherePostId x = do
 deletePostTypeActionByPostId :: Int -> AppAction ()
 deletePostTypeActionByPostId x = do
   c <- liftAndCatchIO connection
-  p <- liftAndCatchIO $ findRow c (DBRef $ fromIntegral x)
+  let sqlPost = [NI.text|
+      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
+      FROM "post"
+      WHERE "postId" = ?
+      |]
+  p <- liftAndCatchIO $ (query c (fromString $ cs sqlPost) (Only x) :: IO [Post.Post])
   case p of
-    Just p' -> do
-      pt <- getPostTypeWherePostId (idInteger $ Post.postId p')
+    (p':_) -> do
+      pt <- getPostTypeWherePostId (Post.postId p')
       deletePostTypeAction pt
-    Nothing -> error $ "Post not found: " ++ show p
+    [] -> error $ "Post not found"
 
 
 deletePostTypeAction :: PostType -> AppAction ()
 deletePostTypeAction p = do
   c <- liftAndCatchIO connection
-  d <- liftAndCatchIO $ destroy c (p :: PostType)
-  case d of
-    Right _ -> pure ()
-    Left e -> error $ "Validation error:" ++ show e
+  let sql = [NI.text|
+      DELETE FROM "postType"
+      WHERE "postTypeId" = ?
+      |]
+  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only $ PostType.postTypeId p)
+  pure ()
