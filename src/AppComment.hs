@@ -60,7 +60,7 @@ appComment = do
               (x:_) -> pure x
               [] -> error "Post not found"
             let sqlComments = [NI.text|
-                SELECT "commentId", "postId", "commentBody", "authorAlias", "approved", "commentCreated"
+                SELECT "commentId", "postId", "commentBody", "authorAlias", "approved", "postCreated"
                 FROM "comment"
                 WHERE "postId" = ? AND "approved" = true
                 |]
@@ -80,7 +80,7 @@ processComment :: Comment -> (Maybe Text -> Html ()) -> AppAction ()
 processComment r _panel = do
   c <- liftAndCatchIO connection
   let sqlInsert = [NI.text|
-      INSERT INTO "comment" ("commentId", "postId", "commentBody", "authorAlias", "approved", "commentCreated")
+      INSERT INTO "comment" ("commentId", "postId", "commentBody", "authorAlias", "approved", "postCreated")
       VALUES (?, ?, ?, ?, ?, ?)
       |]
   liftAndCatchIO (execute c (fromString $ cs sqlInsert) r) >>= \_ -> do
@@ -96,7 +96,7 @@ processComment r _panel = do
         (x:_) -> pure x
         [] -> error "Post not found"
       let sqlComments = [NI.text|
-          SELECT "commentId", "postId", "commentBody", "authorAlias", "approved", "commentCreated"
+          SELECT "commentId", "postId", "commentBody", "authorAlias", "approved", "postCreated"
           FROM "comment"
           WHERE "postId" = ? AND "approved" = true
           |]

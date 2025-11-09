@@ -37,7 +37,7 @@ commentForm =
      , NioFieldView "Comment:" "commentBody" emptyError
          NioFieldInputText  $ NioFieldValS ""
     ,
-       NioFieldView "" "commentCreated" emptyError
+       NioFieldView "" "postCreated" emptyError
          NioFieldInputHidden (NioFieldValS "")
     ,
        NioFieldView "" "commentId" emptyError
@@ -54,7 +54,7 @@ commentForm' p =
      , NioFieldView "Comment:" "commentBody" emptyError
          NioFieldInputText  $ NioFieldValS ""
     ,
-       NioFieldView "" "commentCreated" emptyError
+       NioFieldView "" "postCreated" emptyError
          NioFieldInputHidden (NioFieldValS "")
     ,
        NioFieldView "" "commentId" emptyError
@@ -76,7 +76,7 @@ inputComment = do
                      ]
       )
   where
-      a = fieldValue isPresent ("commentId" :: String)
+      a = const $ pure 0
       b = fieldValue isPresent ("postId" :: String)
       c = fieldValue (allRules [
                          minLength 3
