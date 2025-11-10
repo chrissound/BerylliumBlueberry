@@ -13,6 +13,7 @@ import Data.String.Conversions
 import qualified NeatInterpolation as NI
 import Models.Comment
 import Models.Post
+import Models.CommentQueries as CommentQueries
 import AppCommon
 import AppRender
 import Template.Base
@@ -34,13 +35,7 @@ adminComment = do
 commentListAction :: AppAction ()
 commentListAction = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      SELECT c."commentId", c."postId", c."commentBody", c."authorAlias", c."approved", c."postCreated", p."postTitle"
-      FROM "comment" c
-      JOIN "post" p ON c."postId" = p."postId"
-      ORDER BY c."postCreated" DESC
-      |]
-  results <- liftAndCatchIO $ (query_ c (fromString $ cs sql) :: IO [(Int, Int, Text, Text, Bool, UTCTimestamp, Text)])
+  results <- liftAndCatchIO $ CommentQueries.listAllCommentsWithPostTitles c
   let comments = map (\(cid, pid, cbody, author, appr, created, ptitle) ->
         CommentWithPost
           (Comment cid pid cbody author appr created)
@@ -51,20 +46,11 @@ commentListAction = do
 approveCommentAction :: Int -> AppAction ()
 approveCommentAction cid = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      UPDATE "comment"
-      SET "approved" = true
-      WHERE "commentId" = ?
-      |]
-  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only cid)
+  _ <- liftAndCatchIO $ CommentQueries.approveComment cid c
   redirect $ cs $ R.renderPublicUrl R.AdminListComment
 
 deleteCommentAction :: Int -> AppAction ()
 deleteCommentAction cid = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      DELETE FROM "comment"
-      WHERE "commentId" = ?
-      |]
-  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only cid)
+  _ <- liftAndCatchIO $ CommentQueries.deleteComment cid c
   redirect $ cs $ R.renderPublicUrl R.AdminListComment

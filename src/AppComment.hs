@@ -18,6 +18,8 @@ import Forms.Comment
 --import Models.Comment as M
 import Models.Comment as Comment
 import Models.Post as Post
+import Models.CommentQueries as CommentQueries
+import Models.PostQueries as PostQueries
 import AppCommon
 import AppRender
 import NioFormHtml
@@ -50,21 +52,11 @@ appComment = do
           Nothing -> error "something went wrong??"
           Just postIdInput -> do
             c <- liftIO $ connection
-            let sqlPost = [NI.text|
-                SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
-                FROM "post"
-                WHERE "postId" = ?
-                |]
-            postResults <- liftIO (query c (fromString $ cs sqlPost) (Only (postIdInput :: Int)) :: IO [Post])
-            p <- case postResults of
-              (x:_) -> pure x
-              [] -> error "Post not found"
-            let sqlComments = [NI.text|
-                SELECT "commentId", "postId", "commentBody", "authorAlias", "approved", "postCreated"
-                FROM "comment"
-                WHERE "postId" = ? AND "approved" = true
-                |]
-            comments <- liftIO $ query c (fromString $ cs sqlComments) (Only $ Post.postId p)
+            mPost <- liftIO $ PostQueries.getPostById (postIdInput :: Int) c
+            p <- case mPost of
+              Just x -> pure x
+              Nothing -> error "Post not found"
+            comments <- liftIO $ CommentQueries.getApprovedCommentsForPost (Post.postId p) c
             extra <- pure $ do
               panel' "Comments" $ if (Prelude.length comments > 0) then
                 mconcat $ commentView <$> comments
@@ -79,34 +71,20 @@ appComment = do
 processComment :: Comment -> (Maybe Text -> Html ()) -> AppAction ()
 processComment r _panel = do
   c <- liftAndCatchIO connection
-  let sqlInsert = [NI.text|
-      INSERT INTO "comment" ("commentId", "postId", "commentBody", "authorAlias", "approved", "postCreated")
-      VALUES (?, ?, ?, ?, ?, ?)
-      |]
-  liftAndCatchIO (execute c (fromString $ cs sqlInsert) r) >>= \_ -> do
-    (p, extra) <- liftIO $ do
-      c' <- connection
-      let sqlPost = [NI.text|
-          SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
-          FROM "post"
-          WHERE "postId" = ?
-          |]
-      postResults <- (query c' (fromString $ cs sqlPost) (Only $ Comment.postId r) :: IO [Post])
-      p <- case postResults of
-        (x:_) -> pure x
-        [] -> error "Post not found"
-      let sqlComments = [NI.text|
-          SELECT "commentId", "postId", "commentBody", "authorAlias", "approved", "postCreated"
-          FROM "comment"
-          WHERE "postId" = ? AND "approved" = true
-          |]
-      comments <- query c' (fromString $ cs sqlComments) (Only $ Post.postId p)
-      extra <- pure $ do
-        panel' "Comments" $ mconcat $ commentView <$> comments
-        panelWithErrorView "Submit a comment" Nothing $ commentFormLucid $ commentForm' p
-      pure (p, extra)
-    withSvRenderPage'
-      (postTitle p)
-      (Just ("Comment submitted", NotificationInfo))
-      (\sv -> postView sv p extra)
+  _ <- liftAndCatchIO $ CommentQueries.createComment r c
+  (p, extra) <- liftIO $ do
+    c' <- connection
+    mPost <- PostQueries.getPostById (Comment.postId r) c'
+    p <- case mPost of
+      Just x -> pure x
+      Nothing -> error "Post not found"
+    comments <- CommentQueries.getApprovedCommentsForPost (Post.postId p) c'
+    extra <- pure $ do
+      panel' "Comments" $ mconcat $ commentView <$> comments
+      panelWithErrorView "Submit a comment" Nothing $ commentFormLucid $ commentForm' p
+    pure (p, extra)
+  withSvRenderPage'
+    (postTitle p)
+    (Just ("Comment submitted", NotificationInfo))
+    (\sv -> postView sv p extra)
 

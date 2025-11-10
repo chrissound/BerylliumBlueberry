@@ -25,6 +25,7 @@ import NioFormExtra
 import NioFormTypes
 
 import Models.File as File
+import Models.FileQueries as FileQueries
 import User
 import Database
 
@@ -50,15 +51,10 @@ import qualified MyNioFieldError as MNE
 getFileElseError :: Int -> AppAction File
 getFileElseError x = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      SELECT "fileId", "fileTitle", "fileEasyId", "fileCreated", "fileFile"
-      FROM "file"
-      WHERE "fileId" = ?
-      |]
-  u <- liftAndCatchIO $ (query c (fromString $ cs sql) (Only x) :: IO [File])
-  case u of
-    (u':_) -> return u'
-    [] -> error "Unable to retrieve record"
+  mFile <- liftAndCatchIO $ FileQueries.getFileById x c
+  case mFile of
+    Just f -> return f
+    Nothing -> error "Unable to retrieve record"
 
 adminFile :: AppServer ()
 adminFile = do
@@ -93,11 +89,7 @@ createFileAction = do
   scottyInput >>= (form . f') >>= \case
     Right p -> do
       c <- liftAndCatchIO connection
-      let sql = [NI.text|
-          INSERT INTO "file" ("fileId", "fileTitle", "fileEasyId", "fileCreated", "fileFile")
-          VALUES (?, ?, ?, ?, ?)
-          |]
-      _ <- liftAndCatchIO $ execute c (fromString $ cs sql) p
+      _ <- liftAndCatchIO $ FileQueries.createFile p c
       redirect $ cs $ R.renderPublicUrl R.ListFile
     Left nferr -> do
       let extra = panel Nothing $ nferr
@@ -137,20 +129,11 @@ editFileAction' x = do
 deleteFileAction :: Int -> AppAction ()
 deleteFileAction x = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      DELETE FROM "file"
-      WHERE "fileId" = ?
-      |]
-  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only x)
+  _ <- liftAndCatchIO $ FileQueries.deleteFile x c
   redirect $ cs $ R.renderPublicUrl R.ListFile
 
 processFile :: File -> (Maybe Text -> Html ()) -> AppAction ()
 processFile p _panel = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      UPDATE "file"
-      SET "fileTitle" = ?, "fileEasyId" = ?, "fileCreated" = ?, "fileFile" = ?
-      WHERE "fileId" = ?
-      |]
-  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (File.fileTitle p, File.fileEasyId p, File.fileCreated p, File.fileFile p, File.fileId p)
+  _ <- liftAndCatchIO $ FileQueries.updateFile p c
   redirect $ cs $ R.renderPublicUrl R.ListFile

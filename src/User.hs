@@ -28,6 +28,7 @@ import Data.String.Conversions
 import qualified NeatInterpolation as NI
 
 import Models.User as M
+import Models.UserQueries as UserQueries
 import Common
 
 newtype UserId    = UserId Int deriving (Eq, Show)
@@ -79,13 +80,6 @@ class UserSession sState sRecord | sState -> sRecord where
   modifySessionRecord :: sState -> SessionId -> (Maybe sRecord -> sRecord) -> sState
 
 authUser :: Connection -> UserName -> UserPassword -> IO Bool
-authUser c u p = do
-  let sql = [NI.text|
-      SELECT "userId", "userName", "userEmail", "userPassword", "userVerified"
-      FROM "user"
-      WHERE "userName" = ? AND "userPassword" = ?
-      |]
-  (query c (fromString $ cs sql) (u, p) :: IO [M.User]) >>= \case
-    (_:_) -> return True
-    _ -> return False
+authUser c (UserName uname) (UserPassword upass) =
+  UserQueries.authenticateUser uname upass c
 

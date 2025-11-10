@@ -26,6 +26,8 @@ import NioFormExtra
 
 import Models.Post as Post
 import Models.PostType as PostType
+import Models.PostQueries as PostQueries
+import Models.PostTypeQueries as PostTypeQueries
 import Models.User as M
 import User
 import Database
@@ -49,38 +51,24 @@ import qualified NeatInterpolation as NI
 getPostTypeWherePostId :: Int -> AppAction PostType
 getPostTypeWherePostId x = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      SELECT "postTypeId", "postId", "postType"
-      FROM "postType"
-      WHERE "postId" = ?
-      |]
-  p <- liftAndCatchIO $ (query c (fromString $ cs sql) (Only x) :: IO [PostType])
-  case p of
-    [p'] -> pure p'
-    _ -> error $ "PostType not found: " ++ show p
+  mPostType <- liftAndCatchIO $ PostTypeQueries.getPostTypeByPostId x c
+  case mPostType of
+    Just pt -> pure pt
+    Nothing -> error $ "PostType not found for postId: " ++ show x
 
 deletePostTypeActionByPostId :: Int -> AppAction ()
 deletePostTypeActionByPostId x = do
   c <- liftAndCatchIO connection
-  let sqlPost = [NI.text|
-      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
-      FROM "post"
-      WHERE "postId" = ?
-      |]
-  p <- liftAndCatchIO $ (query c (fromString $ cs sqlPost) (Only x) :: IO [Post.Post])
-  case p of
-    (p':_) -> do
+  mPost <- liftAndCatchIO $ PostQueries.getPostById x c
+  case mPost of
+    Just p' -> do
       pt <- getPostTypeWherePostId (Post.postId p')
       deletePostTypeAction pt
-    [] -> error $ "Post not found"
+    Nothing -> error $ "Post not found"
 
 
 deletePostTypeAction :: PostType -> AppAction ()
 deletePostTypeAction p = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      DELETE FROM "postType"
-      WHERE "postTypeId" = ?
-      |]
-  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only $ PostType.postTypeId p)
+  _ <- liftAndCatchIO $ PostTypeQueries.deletePostTypeById (PostType.postTypeId p) c
   pure ()

@@ -28,6 +28,8 @@ import NioFormExtra
 
 import Models.Post as Post
 import Models.PostType as PostType
+import Models.PostQueries as PostQueries
+import Models.PostTypeQueries as PostTypeQueries
 import Models.User as M
 import User
 import Database
@@ -142,22 +144,11 @@ createPostAction = do
   case runInputForm Forms.Post2.postForm inputPost $ toList formInput of
     Right p -> do
       c <- liftAndCatchIO connection
-      let sqlPost = [NI.text|
-          INSERT INTO "post" ("postTitle", "postBody", "postCreated", "postEasyId", "postTags")
-          VALUES (?, ?, ?, ?, ?)
-          RETURNING "postId"
-          |]
       let pp = preProcessPost p
-      postIdResults <- liftAndCatchIO $ (query c (fromString $ cs sqlPost) (postTitle pp, postBody pp, postCreated pp, postEasyId pp, postTags pp) :: IO [Only Int])
-      case postIdResults of
-        (Only insertedPostId:_) -> do
-          let sqlPostType = [NI.text|
-              INSERT INTO "postType" ("postTypeId", "postId", "postType")
-              VALUES (0, ?, ?)
-              |]
-          _ <- liftAndCatchIO $ execute c (fromString $ cs sqlPostType) (insertedPostId, fromEnum PostTypeBlog :: Int)
-          redirect $ cs $ R.renderPublicUrl R.ListPost
-        [] -> renderScottyHtml $ panel (Just "Failed to insert post") (Forms.Post2.postForm)
+      insertedPostId <- liftAndCatchIO $ PostQueries.createPost pp c
+      let pt = PostType 0 insertedPostId (fromEnum PostTypeBlog :: Int)
+      _ <- liftAndCatchIO $ PostTypeQueries.createPostType pt c
+      redirect $ cs $ R.renderPublicUrl R.ListPost
     Left nferr -> do
       let extra = panel Nothing $ nferr
       renderPage' ("Create Post") (Just ("Error submitting comment", NotificationError)) (extra)
@@ -187,23 +178,14 @@ editPostAction' x = do
 deletePostAction :: Int -> AppAction ()
 deletePostAction x = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      DELETE FROM "post"
-      WHERE "postId" = ?
-      |]
-  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Only x)
+  _ <- liftAndCatchIO $ PostQueries.deletePost x c
   redirect $ cs $ R.renderPublicUrl R.ListPost
 
 processPost :: Post -> (Maybe Text -> Html ()) -> AppAction ()
 processPost p _panel = do
   c <- liftAndCatchIO connection
-  let sql = [NI.text|
-      UPDATE "post"
-      SET "postTitle" = ?, "postBody" = ?, "postCreated" = ?, "postEasyId" = ?, "postTags" = ?
-      WHERE "postId" = ?
-      |]
   let pp = preProcessPost p
-  _ <- liftAndCatchIO $ execute c (fromString $ cs sql) (Post.postTitle pp, Post.postBody pp, Post.postCreated pp, Post.postEasyId pp, Post.postTags pp, Post.postId pp)
+  _ <- liftAndCatchIO $ PostQueries.updatePost pp c
   redirect $ cs $ R.renderPublicUrl R.ListPost
 
 preProcessPost :: Post -> Post 

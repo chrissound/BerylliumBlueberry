@@ -17,6 +17,8 @@ import qualified NeatInterpolation as NI
 
 import Models.Post
 import Models.PostType
+import Models.PostQueries as PostQueries
+import Models.PostTypeQueries as PostTypeQueries
 
 import Forms.Post2
 
@@ -65,36 +67,18 @@ adminSinglePage = do
 deletePostAction' :: Int -> AppAction ()
 deletePostAction' x = do
   c <- liftAndCatchIO connection
-  let sqlPost = [NI.text|
-      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
-      FROM "post"
-      WHERE "postId" = ?
-      |]
-  p <- liftAndCatchIO $ (query c (fromString $ cs sqlPost) (Only x) :: IO [Post])
-  case p of
-    (_p':_) -> do
-      let sqlDelete = [NI.text|
-          DELETE FROM "post"
-          WHERE "postId" = ?
-          |]
-      _ <- liftAndCatchIO $ execute c (fromString $ cs sqlDelete) (Only x)
+  mPost <- liftAndCatchIO $ PostQueries.getPostById x c
+  case mPost of
+    Just _ -> do
+      _ <- liftAndCatchIO $ PostQueries.deletePost x c
       redirect $ cs $ R.renderPublicUrl R.AdminListSinglePage
-    [] -> error $ "Post not found"
+    Nothing -> error $ "Post not found"
 
 singlePageList :: AppAction ()
 singlePageList = do
   c <- liftAndCatchIO connection
-  let sqlPostTypes = [NI.text|
-      SELECT "postTypeId", "postId", "postType"
-      FROM "postType"
-      WHERE "postType" = ?
-      |]
-  postTypes <- liftAndCatchIO $ (query c (fromString $ cs sqlPostTypes) (Only $ fromEnum PostTypePage) :: IO [PostType])
-  let sqlPosts = [NI.text|
-      SELECT "postId", "postTitle", "postBody", "postCreated", "postEasyId", "postTags"
-      FROM "post"
-      |]
-  posts <- liftAndCatchIO $ (query_ c (fromString $ cs sqlPosts) :: IO [Post])
+  postTypes <- liftAndCatchIO $ PostTypeQueries.getPostTypesByType PostTypePage c
+  posts <- liftAndCatchIO $ PostQueries.getAllPosts c
 
   let m = catMaybes $ combineByIntIndex
             PagePost
@@ -121,20 +105,9 @@ createPageAction = do
       renderPage' ("Create Page") (Just ("Error submitting comment", NotificationError)) (extra)
 
 processPost :: Post -> (Maybe Text -> Html ()) -> AppAction ()
-processPost p panel = do
+processPost p _panel = do
   c <- liftAndCatchIO connection
-  let sqlInsertPost = [NI.text|
-      INSERT INTO "post" ("postTitle", "postBody", "postCreated", "postEasyId", "postTags")
-      VALUES (?, ?, ?, ?, ?)
-      RETURNING "postId"
-      |]
-  postIdResults <- liftAndCatchIO $ (query c (fromString $ cs sqlInsertPost) (postTitle p, postBody p, postCreated p, postEasyId p, postTags p) :: IO [Only Int])
-  case postIdResults of
-    (Only insertedPostId:_) -> do
-      let sqlInsertPostType = [NI.text|
-          INSERT INTO "postType" ("postTypeId", "postId", "postType")
-          VALUES (0, ?, ?)
-          |]
-      _ <- liftAndCatchIO $ execute c (fromString $ cs sqlInsertPostType) (insertedPostId, fromEnum PostTypePage :: Int)
-      redirect $ cs $ R.renderPublicUrl R.ListPost
-    [] -> renderScottyHtml $ panel (Just "Failed to insert post")
+  insertedPostId <- liftAndCatchIO $ PostQueries.createPost p c
+  let pt = PostType 0 insertedPostId (fromEnum PostTypePage :: Int)
+  _ <- liftAndCatchIO $ PostTypeQueries.createPostType pt c
+  redirect $ cs $ R.renderPublicUrl R.ListPost
