@@ -25,13 +25,10 @@ import Data.Text (Text)
 adminComment :: AppServer ()
 adminComment = do
   get (webRoute R.AdminListComment) $ do
-    verifyAuth
     commentListAction
   getPost (webRoute $ R.AdminApproveComment "commentId") $ do
-    verifyAuth
     param "commentId" >>= approveCommentAction
   getPost (webRoute $ R.AdminDeleteComment "commentId") $ do
-    verifyAuth
     param "commentId" >>= deleteCommentAction
 
 commentListAction :: AppAction ()

@@ -34,10 +34,8 @@ import NioForm
 adminSinglePage :: AppServer ()
 adminSinglePage = do
   get (webRoute R.AdminListSinglePage) $ do
-    verifyAuth
     singlePageList
   get (webRoute R.AdminCreateSinglePage) $ do
-    verifyAuth
     let t = "Create Page"
     sv <- (svd t Nothing)
     let sv' =
@@ -59,10 +57,8 @@ adminSinglePage = do
             }
     renderScottyHtmlSv sv' (panelWithErrorView t Nothing  $ Forms.Post2.pageFormLucid (Forms.Post2.postForm))
   post (webRoute R.AdminCreateSinglePage) $ do
-    verifyAuth
     createPageAction
   getPost (webRoute $ R.AdminDeleteSinglePage "pageId") $ do
-   verifyAuth
    param "pageId" >>= deletePostTypeActionByPostId
    param "pageId" >>= deletePostAction'
 

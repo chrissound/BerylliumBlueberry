@@ -63,13 +63,10 @@ getFileElseError x = do
 adminFile :: AppServer ()
 adminFile = do
   get (webRoute R.AdminCreateFile) $ do
-    verifyAuth
     viewCreateFileAction
   post (webRoute R.AdminCreateFile) $ do
-    verifyAuth
     createFileAction
   get (webRoute $ R.AdminDeleteFile "fileId") $ do
-    verifyAuth
     param "fileId" >>= deleteFileAction
 
 viewCreateFileAction :: AppAction ()

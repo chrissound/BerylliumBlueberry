@@ -224,7 +224,7 @@ main = do
                            liftIO $ appendFile "data/exception.log" $ show nowtime ++ ":"++ show e ++ "\n"
                            html $ e
                            html "An error has occurred. Sincere apologies dear visitor! This incident has been logged and I'll be notified to resolve this as soon as possible.")
-      server logger
+      server sync logger
     )
     (\e -> do
         print ("An exception occurred..." :: String)

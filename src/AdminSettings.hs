@@ -20,14 +20,12 @@ import Forms.AdminSettings
 adminSettings :: AppServer ()
 adminSettings = do
   get (webRoute R.AdminSettings) $ do
-    verifyAuth
     appConfig <- liftIO getAppConfig
     let t = "Settings"
     renderPage' t
       Nothing
       (panelWithErrorView t Nothing  $ Forms.AdminSettings.postFormLucid (Forms.AdminSettings.postForm $ Just appConfig))
   post (webRoute R.AdminSettings) $ do
-    verifyAuth
     let t = "Settings"
     formInput <- scottyInput
     case ((runInputForm (Forms.AdminSettings.postForm Nothing) inputPost) formInput) of

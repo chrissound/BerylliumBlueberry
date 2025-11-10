@@ -61,19 +61,14 @@ adminServer = do
   post (webRoute R.Login) $ do
     loginAction'
   get (webRoute R.AdminCreatePost) $ do
-    verifyAuth
     viewCreatePostAction
   post (webRoute R.AdminCreatePost) $ do
-    verifyAuth
     createPostAction
   get (webRoute $ R.AdminEditPost "postId") $ do
-    verifyAuth
     param "postId" >>= editPostAction'
   post (webRoute $ R.AdminEditPost "postId") $ do
-    verifyAuth
     param "postId" >>= editPostAction
   getPost (webRoute $ R.AdminDeletePost "postId") $ do
-    verifyAuth
     param "postId" >>= deletePostTypeActionByPostId
     param "postId" >>= deletePostAction
   adminSinglePage

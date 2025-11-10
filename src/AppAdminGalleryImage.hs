@@ -65,13 +65,10 @@ getImageElseError x = do
 adminGallery :: AppServer ()
 adminGallery = do
   get (webRoute R.AdminCreateImage) $ do
-    verifyAuth
     viewCreateImageAction
   post (webRoute R.AdminCreateImage) $ do
-    verifyAuth
     createImageAction
   get (webRoute $ R.AdminDeleteImage "imageId") $ do
-    verifyAuth
     param "imageId" >>= deleteImageAction
 
 viewCreateImageAction :: AppAction ()

@@ -8,6 +8,7 @@ module App where
 import Web.Scotty.Trans
 import Network.Wai.Middleware.Static
 import Network.Wai
+import Control.Concurrent.STM (TVar)
 
 import AppAdmin
 import AppCommon
@@ -16,6 +17,8 @@ import AppPost
 import AppPage
 import AppImage
 import AppFile
+import Server (AppState)
+import Middleware.AdminAuth (adminAuthMiddleware)
 
 
 guestServer :: AppServer ()
@@ -33,8 +36,9 @@ guestServer = do
   listFile
   appPageServer
 
-server :: Middleware -> AppServer ()
-server logger = do
+server :: TVar AppState -> Middleware -> AppServer ()
+server appStateVar logger = do
   middleware logger
+  middleware $ adminAuthMiddleware appStateVar
   adminServer
   guestServer
