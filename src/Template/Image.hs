@@ -19,7 +19,9 @@ import qualified Models.Image as M
 import qualified Routes as R
 import Common
 import Template.Types
+import Template.AdminActions
 import AppTypes
+import ViewContext
 
 imageView :: SiteView -> M.Image -> Html ()
 imageView sv image = do
@@ -32,8 +34,8 @@ imageView sv image = do
   where
     fileSource = (\(ImageResizedFileUpload x) -> x) $ M.imageFile image
 
-imagesView :: SiteView -> [M.Image] -> (M.Image -> Html ()) -> Html ()
-imagesView sv images imageHook = do
+imagesView :: SiteView -> [M.Image] -> ViewContext -> Html ()
+imagesView sv images ctx = do
   basicContent sv "Gallery" $ do
     with table_ [class_ "imagesTable"] $ do
       forM_ images $ \image -> do
@@ -44,21 +46,9 @@ imagesView sv images imageHook = do
             with a_ [ href_ (fromString $ R.renderStrPublicUrl $ R.ViewImage $ cs $ M.imageEasyId image) ] $ fromString $ cs $ M.imageTitle image
         with tr_ [class_ "xyz"] $ do
           with td_ [class_ "date"] $ do
-            imageHook image
+            renderImageActions ctx image
             span_ (fromString $ formatUTC $ M.imageCreated image) -- <> " "
           with td_ [class_ "last"] $ do
             with a_ [ href_ (fromString $ R.renderStrPublicUrl $ R.ViewImage $ cs $ M.imageEasyId image) ]
               $ img_ [ src_ $ cs $ "/data/uploads/imagethumb/" ++ (fileSource)]
       p_ ""
-
-imageViewExtraAdmin :: M.Image -> Html ()
-imageViewExtraAdmin p = do
-  buttonConfirmView  (renderParamUrl R.AdminDeleteImage $ M.imageId p) "" "Delete" AlertRed ExtraSmall
-  fromString " "
-  buttonView (renderParamUrl R.AdminEditImage $ M.imageId p) "" "Edit" InfoBlue ExtraSmall
-  fromString " "
-
-imagesViewExtraAdmin :: Html ()
-imagesViewExtraAdmin = do
-  br_ []
-  buttonView (R.renderPublicUrl R.AdminCreateImage) "" "Create Image" InfoBlue Normal

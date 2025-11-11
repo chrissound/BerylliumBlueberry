@@ -15,7 +15,9 @@ import Models.File as File
 import qualified Routes as R
 import Template.Base
 import Template.File
+import Template.AdminActions
 import Forms.Comment
+import ViewContext (fromSiteView)
 import Models.Associations
 import Lucid
 import Network.HTTP.Types
@@ -38,10 +40,7 @@ listFile = do
 filesViewPage :: AppAction ()
 filesViewPage = do
   c <- liftAndCatchIO connection
-  (fileHook, preHook) <- AppCommon.session >>= \case
-    Just _ -> return (fileViewExtraAdmin, filesViewExtraAdmin)
-    Nothing -> return (constHtml, return ())
   files <- sortByDate <$> (liftAndCatchIO $ getAllFiles c)
-  withSvRenderPage "Files" (\sv -> preHook <> filesView sv files fileHook)
+  withSvRenderPage "Files" (\sv -> let ctx = fromSiteView sv in renderCreateFileButton ctx <> filesView sv files ctx)
   where
     getAllFiles conn = query_ conn "SELECT \"fileId\", \"fileTitle\", \"fileEasyId\", \"fileCreated\", \"fileFile\" FROM \"file\"" :: IO [File]

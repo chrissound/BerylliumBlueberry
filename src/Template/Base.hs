@@ -142,25 +142,6 @@ pageViewExtraAdmin p = do
   fromString " "
 
 
-postViewExtraAdmin :: M.Post -> Html ()
-postViewExtraAdmin p = do
-  buttonConfirmView  (renderParamUrl R.AdminDeletePost $ M.postId p) "" "Delete" AlertRed ExtraSmall
-  fromString " "
-  buttonView (renderParamUrl R.AdminEditPost $ M.postId p) "" "Edit" InfoBlue ExtraSmall
-  fromString " "
-
-
-postViewExtraEmpty :: M.Post -> Html ()
-postViewExtraEmpty = const $ return ()
-
-constHtml :: a -> Html ()
-constHtml = const $ return ()
-
-postsViewExtraAdmin :: Html ()
-postsViewExtraAdmin = do
-  br_ []
-  buttonView (R.renderPublicUrl R.AdminCreatePost) "" "Create Post" InfoBlue Normal
-
 
 headerView :: SiteView -> Html ()
 headerView sv =

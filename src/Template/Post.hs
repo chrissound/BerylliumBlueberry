@@ -17,6 +17,8 @@ import qualified Routes as R
 
 import Template.Types
 import Template.Base
+import Template.AdminActions
+import ViewContext
 
 fff :: UTCTimestamp -> UTCTime
 fff (Finite x) = x
@@ -29,8 +31,8 @@ gpby = (f) . (groupBy ((==) `on` getYearFromPost )) where
   z = (\(year,_,_) -> fromIntegral year) . toGregorian
   getYearFromPost = z . utctDay . fff . M.postCreated
 
-postsView :: SiteView -> [M.Post] -> (M.Post -> Html ()) -> String -> Html ()
-postsView sv posts postHook t = do
+postsView :: SiteView -> [M.Post] -> ViewContext -> String -> Html ()
+postsView sv posts ctx t = do
   basicContent sv t $ do
     with table_ [class_ "postsTable"] $ do
       forM_ (gpby posts) $ \(year, posts') -> do
@@ -41,7 +43,7 @@ postsView sv posts postHook t = do
         forM_ posts' $ \post ->
           tr_ $ do
             with td_ [class_ "date"] $ do
-              postHook post
+              renderPostActions ctx post
               span_ (fromString $ formatUTC $ M.postCreated post) -- <> " "
             with td_ [class_ "postTitle"] $ do
               with a_ [ href_ (fromString $ R.renderStrPublicUrl $ R.ViewPost $ cs $ M.postEasyId post) ] $ fromString $ cs $ M.postTitle post

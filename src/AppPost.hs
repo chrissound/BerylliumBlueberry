@@ -14,7 +14,9 @@ import Models.PostType
 import qualified Routes as R
 import Template.Base
 import Template.Post
+import Template.AdminActions
 import Forms.Comment
+import ViewContext (fromSiteView)
 import Models.Associations
 import Lucid
 import Data.Text (Text)
@@ -42,10 +44,7 @@ getPostElseError x = do
 postsViewPage :: AppAction ()
 postsViewPage = do
   posts <- liftAndCatchIO $ getPagePosts' (PostTypeBlog)
-  (postHook, preHook) <- AppCommon.session >>= \case
-    Just _ -> return (postViewExtraAdmin, postsViewExtraAdmin)
-    Nothing -> return (postViewExtraEmpty, return ())
-  withSvRenderPage "Blog" (\sv -> preHook <> postsView sv (postV <$> posts) postHook "Blog")
+  withSvRenderPage "Blog" (\sv -> let ctx = fromSiteView sv in renderCreatePostButton ctx <> postsView sv (postV <$> posts) ctx "Blog")
 
 postsViewPageTag :: Text -> AppAction ()
 postsViewPageTag x = do
@@ -53,11 +52,8 @@ postsViewPageTag x = do
   case posts of
     [] -> status status404
     _ -> do
-      (postHook, preHook) <- AppCommon.session >>= \case
-        Just _ -> return (postViewExtraAdmin, postsViewExtraAdmin)
-        Nothing -> return (postViewExtraEmpty, return ())
       let t = mconcat $ intersperse " " ["Blog","-",x]
-      withSvRenderPage t (\sv -> preHook <> postsView sv (postV <$> posts) postHook (cs t))
+      withSvRenderPage t (\sv -> let ctx = fromSiteView sv in renderCreatePostButton ctx <> postsView sv (postV <$> posts) ctx (cs t))
 
 
 listPost :: AppServer ()

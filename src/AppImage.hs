@@ -15,7 +15,9 @@ import Models.Image as Image
 import qualified Routes as R
 import Template.Base
 import Template.Image
+import Template.AdminActions
 import Forms.Comment
+import ViewContext (fromSiteView)
 import Models.Associations
 import Lucid
 import Database.PostgreSQL.Simple
@@ -40,9 +42,6 @@ imagesViewPage :: AppAction ()
 imagesViewPage = do
   c <- liftAndCatchIO connection
   images <- sortByDate <$> (liftAndCatchIO $ getAllImages c)
-  (imageHook, preHook) <- AppCommon.session >>= \case
-    Just _ -> return (imageViewExtraAdmin, imagesViewExtraAdmin)
-    Nothing -> return (constHtml, return ())
-  withSvRenderPage "Gallery" (\sv -> preHook <> imagesView sv images imageHook)
+  withSvRenderPage "Gallery" (\sv -> let ctx = fromSiteView sv in renderCreateImageButton ctx <> imagesView sv images ctx)
   where
     getAllImages conn = query_ conn "SELECT \"imageId\", \"imageTitle\", \"imageEasyId\", \"imageCreated\", \"imageFile\" FROM \"image\"" :: IO [Image]

@@ -20,7 +20,9 @@ import qualified Models.File as M
 import qualified Routes as R
 import Common
 import Template.Types
+import Template.AdminActions
 import AppTypes
+import ViewContext
 
 fileView :: SiteView -> M.File -> Html ()
 fileView sv file = do
@@ -32,8 +34,8 @@ fileView sv file = do
   where
     fileSource = (\(FileUpload x) -> x) $ M.fileFile file
 
-filesView :: SiteView -> [M.File] -> (M.File -> Html ()) -> Html ()
-filesView sv files fileHook = do
+filesView :: SiteView -> [M.File] -> ViewContext -> Html ()
+filesView sv files ctx = do
   basicContent sv "Files" $ do
     with table_ [class_ "filesTable"] $ do
       forM_ files $ \file -> do
@@ -44,22 +46,10 @@ filesView sv files fileHook = do
             with a_ [ href_ (fromString $ R.renderStrPublicUrl $ R.DownloadFile $ (\(FileUpload x) -> x) $ M.fileFile file) ] $ fromString $ cs $ M.fileTitle file
         with tr_ [class_ "xyz"] $ do
           with td_ [class_ "date"] $ do
-            fileHook file
+            renderFileActions ctx file
             span_ (fromString $ formatUTC $ M.fileCreated file) -- <> " "
           with td_ [class_ "last"] $ do
             pure ()
             -- with a_ [ href_ (fromString $ R.renderStrPublicUrl $ R.ViewFile $ cs $ M.fileEasyId file) ]
             --   $ img_ [ src_ $ cs $ "/data/uploads/filethumb/" ++ (fileSource)]
       p_ ""
-
-fileViewExtraAdmin :: M.File -> Html ()
-fileViewExtraAdmin p = do
-  buttonConfirmView  (renderParamUrl R.AdminDeleteFile $ M.fileId p) "" "Delete" AlertRed ExtraSmall
-  fromString " "
-  buttonView (renderParamUrl R.AdminEditFile $ M.fileId p) "" "Edit" InfoBlue ExtraSmall
-  fromString " "
-
-filesViewExtraAdmin :: Html ()
-filesViewExtraAdmin = do
-  br_ []
-  buttonView (R.renderPublicUrl R.AdminCreateFile) "" "Create File" InfoBlue Normal
