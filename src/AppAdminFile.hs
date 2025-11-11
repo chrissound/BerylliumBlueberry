@@ -26,7 +26,6 @@ import NioFormTypes
 
 import Models.File as File
 import Models.FileQueries as FileQueries
-import User
 import Database
 
 import Data.ByteString.Base64 as B64

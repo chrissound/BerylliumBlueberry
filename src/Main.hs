@@ -45,6 +45,7 @@ initConfig = do
       Data.Aeson.encodeFile "data/config.json" $
         AppConfig "Sample config" "BerylliumBlueberry" ([]) "hello@your-email" "<a href='https://github.com/chrissound/BerylliumBlueberry'>Built with BerylliumBlueberry</a>" ""
           (ConnectInfo "localhost" 5432 "" "" "")
+          "" ""  -- adminUsername and adminPassword will be loaded from env vars
       >> exitWith ExitSuccess
 
 main :: IO ()
@@ -58,10 +59,11 @@ main = do
         ("--port":x:[]) -> read x
         _ -> 3001
   catch ( do
+    appConfig <- getAppConfig
     savedAppState <- decodeFile appState :: IO AppState
     sync <- newTVarIO savedAppState
     _ <- forkIO $ do
-      let day = 60 * 600 
+      let day = 60 * 600
       threadDelay (day * 10^6)
       runPeriodicallyBigDrift (fromIntegral day) $ do
         nowTime <- liftIO getCurrentTime
@@ -83,7 +85,7 @@ main = do
                            liftIO $ appendFile "data/exception.log" $ show nowtime ++ ":"++ show e ++ "\n"
                            html $ e
                            html "An error has occurred. Sincere apologies dear visitor! This incident has been logged and I'll be notified to resolve this as soon as possible.")
-      server sync logger
+      server appConfig logger
     )
     (\e -> do
         print ("An exception occurred..." :: String)

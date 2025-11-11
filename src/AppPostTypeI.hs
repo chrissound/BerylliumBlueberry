@@ -18,7 +18,6 @@ import Data.List.Utils (replace)
 
 import Lucid
 
-import Forms.Login
 -- import Forms.Post
 import Forms.Post2
 import NioForm
@@ -28,8 +27,6 @@ import Models.Post as Post
 import Models.PostType as PostType
 import Models.PostQueries as PostQueries
 import Models.PostTypeQueries as PostTypeQueries
-import Models.User as M
-import User
 import Database
 
 import Data.ByteString.Base64 as B64

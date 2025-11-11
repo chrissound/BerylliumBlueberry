@@ -21,7 +21,6 @@ import Data.List.Utils (replace)
 
 import Lucid
 
-import Forms.Login
 import Forms.Post2
 import NioForm
 import NioFormExtra
@@ -30,9 +29,8 @@ import Models.Post as Post
 import Models.PostType as PostType
 import Models.PostQueries as PostQueries
 import Models.PostTypeQueries as PostTypeQueries
-import Models.User as M
-import User
 import Database
+import AppConfig
 
 import Data.ByteString.Base64 as B64
 import Template.Base
@@ -79,26 +77,37 @@ adminServer = do
   adminFile
   adminComment
 
+simpleLoginForm :: Html ()
+simpleLoginForm = do
+  form_ [method_ "post", action_ (cs $ R.renderPublicUrl R.Login)] $ do
+    div_ [class_ "form-group"] $ do
+      label_ [for_ "username"] "Username"
+      input_ [type_ "text", name_ "username", id_ "username", class_ "form-control", required_ ""]
+    div_ [class_ "form-group"] $ do
+      label_ [for_ "password"] "Password"
+      input_ [type_ "password", name_ "password", id_ "password", class_ "form-control", required_ ""]
+    button_ [type_ "submit", class_ "btn btn-primary"] "Login"
+
 loginAction :: AppAction ()
 loginAction = do
   let t = "Login"
-  renderPage t (panelWithErrorView t Nothing $ loginFormLucid' loginForm')
+  renderPage t (panelWithErrorView t Nothing simpleLoginForm)
 
 loginAction' :: AppAction ()
 loginAction' = do
   let t = "Login"
-  formAction loginForm' inputLogin' loginFormLucid' t "Failed to login" $ \(LoginRequest a b) -> do
-    loginRes <- liftAndCatchIO connection >>= \c -> liftAndCatchIO $ authUser c (UserName a) (UserPassword $ b)
-    if | loginRes == True -> do
-          randBytes <- liftAndCatchIO $ getEntropy 512
-          let sId@(SessionId sId') = SessionId $ cs $ B64.encode $ randBytes
-          setCookie ( defaultSetCookie { setCookieName = "session_id", setCookieValue = cs sId'})
-          setCookie ( defaultSetCookie { setCookieName = "nocache", setCookieValue = "true"})
-          nowTime <- liftAndCatchIO getCurrentTime
-          lift $ withAppSessions $ (\s -> addSession s sId nowTime)
-          lift $ withSession sId $ loginSession $ cs $ a
-          redirect $ cs $ R.renderPublicUrl R.Dashboard
-        | otherwise -> renderPage t (panelWithErrorView t (Just "Failed to login") $ loginFormLucid' loginForm')
+  username <- param "username" :: AppAction Text
+  password <- param "password" :: AppAction Text
+  appConfig <- liftIO getAppConfig
+
+  if username == adminUsername appConfig && password == adminPassword appConfig
+    then do
+      -- Set cookie with the password
+      setCookie ( defaultSetCookie { setCookieName = "admin_password", setCookieValue = cs password})
+      setCookie ( defaultSetCookie { setCookieName = "nocache", setCookieValue = "true"})
+      redirect $ cs $ R.renderPublicUrl R.Dashboard
+    else
+      renderPage t (panelWithErrorView t (Just "Failed to login") simpleLoginForm)
 
 select2sv :: Text -> MaybeNotification -> AppAction SiteView
 select2sv t v = do

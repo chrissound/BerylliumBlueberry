@@ -8,6 +8,7 @@ import Lucid
 import Control.Monad.Reader
 import Template.Base
 import Web.Scotty.Trans
+import Web.Scotty.Cookie
 import Data.String.Conversions
 import AppCommon
 import ScottyInput
@@ -19,6 +20,7 @@ import NioFormTypes
 import NioForm
 import Database.PostgreSQL.Simple
 import qualified MyNioFieldError as MNE
+import qualified Data.Map.Strict as MS
 
 renderPage :: Text -> Html () -> AppAction ()
 renderPage t h = siteViewDataDef t >>= flip renderScottyHtmlSv h
@@ -55,11 +57,18 @@ svd :: Text
         -> AppAction SiteView
 svd t n = do
   c <- liftAndCatchIO connection
-  (\u pp appConfig images -> SiteView
+  -- Check if admin by verifying cookie password
+  appConfig <- liftIO getAppConfig
+  cc <- getCookies
+  let isAdminUser = case MS.lookup "admin_password" cc of
+        Just cookiePass -> cs cookiePass == adminPassword appConfig
+        Nothing -> False
+
+  (\pp images -> SiteView
       (siteHeading appConfig)
       (siteSubHeading appConfig)
       t
-      u
+      isAdminUser
       n
       pp
       ((Prelude.length (images :: [Image])) /= 0)
@@ -68,7 +77,7 @@ svd t n = do
       (AppConfig.siteExtraHeadHtml appConfig)
       []
       []
-    ) <$> getLoggedInUser <*> liftIO getPagePosts <*> liftIO getAppConfig <*> (liftAndCatchIO $ getAllImages c)
+    ) <$> liftIO getPagePosts <*> (liftAndCatchIO $ getAllImages c)
   where
     getAllImages conn = query_ conn "SELECT \"imageId\", \"imageTitle\", \"imageEasyId\", \"imageCreated\", \"imageFile\" FROM \"image\"" :: IO [Image]
 

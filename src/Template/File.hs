@@ -16,7 +16,6 @@ import Control.Monad.Except
 import Control.Monad.Trans.State.Strict
 import Lucid
 
-import qualified Models.User as M
 import qualified Models.File as M
 import qualified Routes as R
 import Common

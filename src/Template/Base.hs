@@ -18,7 +18,6 @@ import Lucid
 import Models.Comment (Comment, authorAlias, commentBody, postCreated)
 import qualified Models.Post as M
 import Models.PostType as PostType
-import qualified Models.User as M
 import qualified Routes as R
 import Template.Types
 
@@ -78,8 +77,8 @@ siteView sv body =
             else pure ()
             )
             <>
-            case (loggedInUser sv) of
-              Just _ -> do
+            (if isAdmin sv
+              then
                 (mconcat (
                   fmap (\x -> navItemA (fromString $ R.renderStrPublicUrl x) ( fromString $ show x))
                   [
@@ -89,7 +88,8 @@ siteView sv body =
                   , R.AdminSettings
                   ]
                   ))
-              Nothing -> pure ()
+              else pure ()
+            )
             <>
                 mconcat (
                   fmap (navItemA <$> (fromString . R.renderStrPublicUrl) <*> ( fromString . show))
@@ -174,9 +174,7 @@ headerView sv =
         with div_ [ class_ "col-sm-12 my-header" ] $ do
           with h1_ [ class_ "header-title" ] $ fromString $ cs $ sv_blogName sv
           with p_ [ class_ "header-slogan" ] $ fromString $ cs $ sv_blogDesc sv
-          case (loggedInUser sv) of
-            Just u -> p_ $ fromString $ "Logged in as: " ++ (cs $ M.userName u)
-            Nothing -> return ()
+          when (isAdmin sv) $ p_ $ fromString ("Logged in as admin" :: String)
       with div_ [ class_ "row" ] $ do
         with div_ [ class_ "col-sm-12 header-info-container" ] $ do
           with div_ [ class_ "center-text-flex" ] $ do

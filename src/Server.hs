@@ -15,7 +15,6 @@ import Control.Concurrent.STM
 import Data.Map.Strict as MS
 import Data.Time.Clock
 import Data.Time.Calendar
-import User
 import GHC.Generics
 import qualified Data.Binary.Orphans
 import qualified Data.Binary.Instances
@@ -27,11 +26,20 @@ type MapString a = Map String a
 type Session = SessionRecord (MapString String)
 type AppStateSessions = MapString (Session)
 
+newtype SessionId = SessionId String
+
 data SessionRecord a = SessionRecord {lastModified:: UTCTime,  sessionV :: a} deriving (Show, Generic)
 instance Binary Session
 
 emptySessionRecord :: Session
 emptySessionRecord = SessionRecord { sessionV = empty, lastModified = UTCTime (ModifiedJulianDay 0) 0}
+
+-- UserSession typeclass (moved from deleted User.hs)
+class UserSession s sr | s -> sr where
+  addSession :: s -> SessionId -> UTCTime -> s
+  session :: s -> SessionId -> Maybe sr
+  modifySessionRecord :: s -> SessionId -> (Maybe sr -> sr) -> s
+  logout :: s -> SessionId -> s
 
 instance UserSession AppStateSessions (Session) where
   addSession s sId t = do

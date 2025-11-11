@@ -28,7 +28,6 @@ import NioFormTypes
 
 import Models.Image as Image
 import Models.ImageQueries as ImageQueries
-import User
 import Database
 
 import Data.ByteString.Base64 as B64

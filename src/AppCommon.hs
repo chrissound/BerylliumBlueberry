@@ -9,7 +9,6 @@ module AppCommon (
   , module Database
   , module Web.Scotty.Trans
   , module Data.Time.Clock
-  , module User
   , module Common
   , module Data.String.Conversions
   , module Text.Pretty.Simple
@@ -21,7 +20,6 @@ import Server
 import qualified Routes as R
 import Data.Map.Strict as MS
 import Control.Monad.Reader
-import User hiding (session)
 import Lucid
 import Data.Bool
 import Data.String
@@ -38,8 +36,6 @@ import Common
 
 import Database
 import Database.PostgreSQL.Simple
-
-import Models.User as M
 
 webRoute :: R.RouteUrl String R.PlaceHolderUrl -> RoutePattern
 webRoute = fromString . R.renderPlaceHolderUrl
@@ -85,25 +81,6 @@ redirectRoute r = redirect $ cs $ R.renderPublicUrl r
 
 renderScottyHtml :: Html () -> AppAction ()
 renderScottyHtml h = html . cs . renderText $ h
-
-getLoggedInUser :: AppAction (Maybe M.User)
-getLoggedInUser = do
-  s <- AppCommon.session
-  case s of
-    Just s' -> do
-      username <- return $ MS.lookup "username" (sessionV s')
-      c <- liftAndCatchIO connection
-      let sql = [NI.text|
-          SELECT "userId", "userName", "userEmail", "userPassword", "userVerified"
-          FROM "user"
-          WHERE "userName" = ?
-          |]
-      z <- liftAndCatchIO $ query c (fromString $ cs sql) (Only username) :: AppAction [M.User]
-      case z of
-        (r:_) -> return $ Just r
-        (_) -> return Nothing
-    Nothing -> return Nothing
-
 
 todoMaybeQuickError :: Monad m => Maybe a -> m a
 todoMaybeQuickError (Just x) = pure x

@@ -19,6 +19,7 @@ import AppImage
 import AppFile
 import Server (AppState)
 import Middleware.AdminAuth (adminAuthMiddleware)
+import AppConfig
 
 
 guestServer :: AppServer ()
@@ -36,9 +37,9 @@ guestServer = do
   listFile
   appPageServer
 
-server :: TVar AppState -> Middleware -> AppServer ()
-server appStateVar logger = do
+server :: AppConfig -> Middleware -> AppServer ()
+server appConfig logger = do
   middleware logger
-  middleware $ adminAuthMiddleware appStateVar
+  middleware $ adminAuthMiddleware appConfig
   adminServer
   guestServer

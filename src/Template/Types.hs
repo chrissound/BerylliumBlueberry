@@ -15,7 +15,6 @@ import Control.Monad.Except
 import Control.Monad.Trans.State.Strict
 import Lucid
 
-import qualified Models.User as M
 import qualified Models.Post as M
 import Models.PostType as PostType
 import qualified Routes as R
@@ -28,7 +27,7 @@ data SiteView = SiteView
   { sv_blogName :: T.Text
   , sv_blogDesc :: T.Text
   , sv_pageTitle :: T.Text
-  , loggedInUser :: Maybe M.User
+  , isAdmin :: Bool
   , notification :: MaybeNotification --, sv_user :: Maybe
   , pages :: [PagePost]
   , displayGallery :: Bool

@@ -8,9 +8,9 @@ import Web.Cookie
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import Data.String.Conversions
-import qualified Data.Map.Strict as MS
-import Control.Concurrent.STM
-import Server
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import AppConfig
 
 -- Protected paths that require authentication
 protectedPrefixes :: [BS.ByteString]
@@ -24,12 +24,12 @@ skippedPaths = ["/xyzabcadminlogin", "/xyzabcadminregister"]
 skippedPrefixes :: [BS.ByteString]
 skippedPrefixes = ["/static/", "/files/", "/data/uploads/", "/favicon"]
 
--- Main middleware factory - takes TVar AppState and returns Middleware
-adminAuthMiddleware :: TVar AppState -> Middleware
-adminAuthMiddleware appStateVar app req sendResponse = do
+-- Main middleware factory - takes AppConfig and returns Middleware
+adminAuthMiddleware :: AppConfig -> Middleware
+adminAuthMiddleware appConfig app req sendResponse = do
     if requiresAuth (rawPathInfo req)
         then do
-            isAuth <- isAuthorized appStateVar req
+            let isAuth = isAuthorized appConfig req
             if isAuth
                 then app req sendResponse
                 else sendResponse unauthorizedResponse
@@ -47,24 +47,16 @@ shouldSkipPath path =
     path `elem` skippedPaths ||
     any (`BS.isPrefixOf` path) skippedPrefixes
 
--- Check if request is authorized by validating session
-isAuthorized :: TVar AppState -> Request -> IO Bool
-isAuthorized appStateVar req = do
+-- Check if request is authorized by validating cookie password
+isAuthorized :: AppConfig -> Request -> Bool
+isAuthorized appConfig req =
     case lookup hCookie (requestHeaders req) of
-        Nothing -> return False
-        Just cookieHeader -> do
+        Nothing -> False
+        Just cookieHeader ->
             let cookies = parseCookies cookieHeader
-            case lookup "session_id" cookies of
-                Nothing -> return False
-                Just sId -> checkSession appStateVar (cs sId)
-
--- Verify session has username (indicating logged in admin)
-checkSession :: TVar AppState -> String -> IO Bool
-checkSession appStateVar sId = do
-    appState <- readTVarIO appStateVar
-    case MS.lookup sId (sessions appState) of
-        Nothing -> return False
-        Just session -> return $ MS.member "username" (sessionV session)
+            in case lookup "admin_password" cookies of
+                Nothing -> False
+                Just cookiePass -> TE.decodeUtf8 cookiePass == adminPassword appConfig
 
 -- Return 404 to hide admin routes from unauthorized users
 unauthorizedResponse :: Response
