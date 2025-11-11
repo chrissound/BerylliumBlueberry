@@ -49,10 +49,10 @@ getPostTypesByType typeEnum c = do
 createPostType :: PostType -> Connection -> IO ()
 createPostType pt c = do
   let sql = [NI.text|
-      INSERT INTO "postType" ("postTypeId", "postId", "postType")
-      VALUES (?, ?, ?)
+      INSERT INTO "postType" ("postId", "postType")
+      VALUES (?, ?)
       |]
-  _ <- execute c (fromString $ cs sql) pt
+  _ <- execute c (fromString $ cs sql) (postId pt, postType pt)
   return ()
 
 -- | Update an existing PostType
